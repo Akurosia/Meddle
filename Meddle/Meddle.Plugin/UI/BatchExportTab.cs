@@ -263,6 +263,7 @@ public unsafe class BatchExportTab : ITab
         {
             Directory.CreateDirectory(outputDir);
             var exportConfig = CreateBatchExportConfig();
+            exportConfig.PoseMode = SkeletonUtils.PoseMode.None;
             IEnumerable<CharacterBatchCandidate> candidates;
             try
             {
@@ -531,7 +532,7 @@ public unsafe class BatchExportTab : ITab
         var exportConfig = config.ExportConfig.Clone();
         exportConfig.SetDefaultCloneOptions();
         exportConfig.ExportType = ExportType.GLTF;
-        exportConfig.PoseMode = SkeletonUtils.PoseMode.None;
+        exportConfig.PoseMode = SkeletonUtils.PoseMode.Local;
         exportConfig.UseDeformer = true;
         return exportConfig;
     }
