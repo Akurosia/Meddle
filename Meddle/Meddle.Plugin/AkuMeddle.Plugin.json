@@ -1,9 +1,9 @@
 {
     "Author": "Ramen",
-    "Name": "Meddle",
+    "Name": "AkuMeddle",
     "Punchline": "Did I mention I'm a model? Export models to glTF format.",
     "Description": "Export models to glTF format.",
-    "InternalName": "Meddle.Plugin",
+    "InternalName": "AkuMeddle.Plugin",
     "ApplicableVersion": "any",
     "Tags": [
         "xande",

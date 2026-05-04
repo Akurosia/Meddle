@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Dalamud.NET.Sdk/15.0.0">
     <PropertyGroup>
         <Version>0.0.1</Version>
+        <AssemblyName>AkuMeddle.Plugin</AssemblyName>
+        <PluginCompatibilityName>Meddle.Plugin</PluginCompatibilityName>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>Meddle.Plugin</RootNamespace>
@@ -41,4 +43,18 @@
         <ProjectReference Include="$(CustomClientStructsPath)\FFXIVClientStructs\FFXIVClientStructs.csproj" Private="True" />
         <ProjectReference Include="$(CustomClientStructsPath)\InteropGenerator.Runtime\InteropGenerator.Runtime.csproj" Private="True" />
     </ItemGroup>
+
+    <Target Name="CreateCompatibilityPluginArtifacts" AfterTargets="Build">
+        <Copy SourceFiles="$(TargetDir)$(AssemblyName).dll"
+              DestinationFiles="$(TargetDir)$(PluginCompatibilityName).dll"
+              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="$(TargetDir)$(AssemblyName).deps.json"
+              DestinationFiles="$(TargetDir)$(PluginCompatibilityName).deps.json"
+              SkipUnchangedFiles="true"
+              Condition="Exists('$(TargetDir)$(AssemblyName).deps.json')" />
+        <Copy SourceFiles="$(TargetDir)$(AssemblyName).json"
+              DestinationFiles="$(TargetDir)$(PluginCompatibilityName).json"
+              SkipUnchangedFiles="true"
+              Condition="Exists('$(TargetDir)$(AssemblyName).json')" />
+    </Target>
 </Project>

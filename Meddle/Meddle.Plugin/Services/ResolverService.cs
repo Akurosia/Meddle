@@ -150,12 +150,12 @@ public class ResolverService : IService
                                .ToArray();
         foreach (var mtrlName in mtrlNames)
         {
-            if (mtrlName.StartsWith('/')) throw new InvalidOperationException("Cannot resolve relative paths");
+            var resolvedMtrlPath = ResolveRelatedGamePath(path, mtrlName, "material");
             
-            var mtrlResource = pack.GetFile(mtrlName);
+            var mtrlResource = pack.GetFile(resolvedMtrlPath);
             if (mtrlResource == null)
             {
-                logger.LogWarning("Failed to load material file: {Path}", mtrlName);
+                logger.LogWarning("Failed to load material file: {Path}", resolvedMtrlPath);
                 continue;
             }
             
@@ -169,7 +169,7 @@ public class ResolverService : IService
                                        .ToArray();
             for (var texIdx = 0; texIdx < textureNames.Length; texIdx++)
             {
-                var texName = textureNames[texIdx];
+                var texName = ResolveRelatedGamePath(resolvedMtrlPath, textureNames[texIdx], "texture");
                 var texResource = pack.GetFile(texName);
                 if (texResource == null)
                 {
@@ -184,13 +184,46 @@ public class ResolverService : IService
                 textures.Add(texInfo);
             }
 
-            var materialInfo = new ParsedMaterialInfo(mtrlName, mtrlName, shaderName, null, colorTable, textures.ToArray());
+            var materialInfo = new ParsedMaterialInfo(resolvedMtrlPath, mtrlName, shaderName, null, colorTable, textures.ToArray());
             
             materials.Add(materialInfo);
         }
 
         var modelInfo = new ParsedModelInfo(path, path, true, null, null, materials.ToArray(), null, null);
         return modelInfo;
+    }
+
+    private static string ResolveRelatedGamePath(string sourcePath, string targetPath, string siblingFolder)
+    {
+        if (string.IsNullOrWhiteSpace(targetPath))
+        {
+            return targetPath;
+        }
+
+        if (!targetPath.StartsWith('/'))
+        {
+            return targetPath;
+        }
+
+        var normalizedSource = sourcePath.Replace('\\', '/');
+        var sourceDir = normalizedSource[..normalizedSource.LastIndexOf('/')];
+
+        if (siblingFolder == "material" && sourceDir.EndsWith("/model", StringComparison.OrdinalIgnoreCase))
+        {
+            var siblingDir = $"{sourceDir[..^"/model".Length]}/{siblingFolder}/v0001";
+            return $"{siblingDir}/{targetPath.TrimStart('/')}";
+        }
+
+        if (sourceDir.Contains("/material/", StringComparison.OrdinalIgnoreCase))
+        {
+            var materialIndex = sourceDir.LastIndexOf("/material/", StringComparison.OrdinalIgnoreCase);
+            var materialRoot = sourceDir[..materialIndex];
+            var versionSegment = sourceDir[(materialIndex + "/material/".Length)..];
+            var version = versionSegment.Split('/')[0];
+            return $"{materialRoot}/{siblingFolder}/{version}/{targetPath.TrimStart('/')}";
+        }
+
+        return $"{sourceDir}/{targetPath.TrimStart('/')}";
     }
 
     public ParsedCharacterInfo? ParseDrawObject(Pointer<DrawObject> drawObject)

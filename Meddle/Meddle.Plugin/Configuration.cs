@@ -32,6 +32,20 @@ public partial class Configuration : IPluginConfiguration
     public string SecretConfig { get; set; } = string.Empty;
     public bool DisplayDebugInfo { get; set; }
     public bool OpenFolderOnExport { get; set; } = true;
+    public Dictionary<uint, Dictionary<string, ZoneEnemyExportRecord>> ZoneEnemyExportLookup { get; set; } = new();
+    public string BatchBodyItemExportDirectory { get; set; } = string.Empty;
+    public string BatchZoneEnemyExportDirectory { get; set; } = string.Empty;
+    public bool BatchExportMainHand { get; set; } = true;
+    public bool BatchExportOffHand { get; set; } = true;
+    public bool BatchExportHead { get; set; } = true;
+    public bool BatchExportBody { get; set; } = true;
+    public bool BatchExportHands { get; set; } = true;
+    public bool BatchExportLegs { get; set; } = true;
+    public bool BatchExportFeet { get; set; } = true;
+    public bool BatchExportEarrings { get; set; } = true;
+    public bool BatchExportNecklace { get; set; } = true;
+    public bool BatchExportWrists { get; set; } = true;
+    public bool BatchExportRings { get; set; } = true;
     
     /// <summary>
     /// Used to hide names in the UI
@@ -41,6 +55,13 @@ public partial class Configuration : IPluginConfiguration
     public LayoutWindow.LayoutConfig LayoutConfig { get; set; } = new();
     public ExportConfiguration ExportConfig { get; set; } = new();
     public UpdateWindow.UpdateConfig UpdateConfig { get; set; } = new();
+
+    public class ZoneEnemyExportRecord
+    {
+        public string Name { get; set; } = string.Empty;
+        public string[] ModelPaths { get; set; } = [];
+        public DateTime ExportedAtUtc { get; set; } = DateTime.UtcNow;
+    }
     
     public class ExportConfiguration
     {
