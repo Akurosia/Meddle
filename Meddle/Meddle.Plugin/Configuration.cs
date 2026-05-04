@@ -46,6 +46,8 @@ public partial class Configuration : IPluginConfiguration
     public bool BatchExportNecklace { get; set; } = true;
     public bool BatchExportWrists { get; set; } = true;
     public bool BatchExportRings { get; set; } = true;
+    public bool EnableAutomaticZoneEnemyExport { get; set; }
+    public int AutomaticZoneEnemyExportIntervalSeconds { get; set; } = 10;
     
     /// <summary>
     /// Used to hide names in the UI

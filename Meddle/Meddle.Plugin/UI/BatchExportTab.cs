@@ -5,6 +5,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Composer;
 using Meddle.Plugin.Models.Layout;
@@ -33,13 +34,23 @@ public unsafe class BatchExportTab : ITab
     private readonly IObjectTable objectTable;
     private readonly IClientState clientState;
     private readonly IDataManager dataManager;
+    private readonly IFramework framework;
+    private readonly List<CancellationTokenSource> ownedCancellationSources = [];
 
     private ICharacter? selectedCharacter;
     private Task exportTask = Task.CompletedTask;
-    private CancellationTokenSource cancelToken = new();
+    private CancellationTokenSource cancelToken;
     private ProgressWrapper? progress;
     private int bodyItemTestCount = 5;
     private string? statusMessage;
+    private DateTime lastAutoEnemyScanUtc = DateTime.MinValue;
+    private uint lastAutoEnemyTerritoryId;
+    private int lastUnsavedEnemyCount;
+    private string? lastUnsavedEnemyPreview;
+    private DateTime? lastUnsavedEnemyDetectedUtc;
+    private bool isDisposed;
+    private volatile bool automaticZoneEnemyExportPending;
+    private uint pendingAutomaticZoneEnemyTerritoryId;
 
     public BatchExportTab(
         ILogger<BatchExportTab> logger,
@@ -50,7 +61,8 @@ public unsafe class BatchExportTab : ITab
         SqPack pack,
         IObjectTable objectTable,
         IClientState clientState,
-        IDataManager dataManager)
+        IDataManager dataManager,
+        IFramework framework)
     {
         this.logger = logger;
         this.commonUi = commonUi;
@@ -61,6 +73,9 @@ public unsafe class BatchExportTab : ITab
         this.objectTable = objectTable;
         this.clientState = clientState;
         this.dataManager = dataManager;
+        this.framework = framework;
+        cancelToken = CreateOwnedCancellationTokenSource();
+        this.framework.Update += OnFrameworkUpdate;
     }
 
     public string Name => "Batch";
@@ -70,6 +85,7 @@ public unsafe class BatchExportTab : ITab
     public void Draw()
     {
         UiUtil.DrawProgress(exportTask, progress, cancelToken);
+        ProcessPendingAutomaticZoneEnemyExport();
         commonUi.DrawCharacterSelect(ref selectedCharacter, CharacterValidationFlags.IsVisible);
 
         if (!string.IsNullOrWhiteSpace(statusMessage))
@@ -85,8 +101,31 @@ public unsafe class BatchExportTab : ITab
 
     public void Dispose()
     {
-        cancelToken.Cancel();
-        cancelToken.Dispose();
+        if (isDisposed)
+        {
+            return;
+        }
+
+        isDisposed = true;
+        framework.Update -= OnFrameworkUpdate;
+        foreach (var cts in ownedCancellationSources)
+        {
+            try
+            {
+                cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            try
+            {
+                cts.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
     }
 
     private void DrawBodyItemSection()
@@ -133,13 +172,37 @@ public unsafe class BatchExportTab : ITab
             config.BatchZoneEnemyExportDirectory = zoneExportDirectory;
             config.Save();
         }
+        var automaticEnemyExport = config.EnableAutomaticZoneEnemyExport;
+        if (ImGui.Checkbox("Enable Automatic Background Export", ref automaticEnemyExport))
+        {
+            config.EnableAutomaticZoneEnemyExport = automaticEnemyExport;
+            config.Save();
+            lastAutoEnemyScanUtc = DateTime.MinValue;
+            lastAutoEnemyTerritoryId = 0;
+        }
+        var automaticIntervalSeconds = config.AutomaticZoneEnemyExportIntervalSeconds;
+        if (ImGui.InputInt("Auto Interval (seconds)", ref automaticIntervalSeconds))
+        {
+            config.AutomaticZoneEnemyExportIntervalSeconds = Math.Clamp(automaticIntervalSeconds, 1, 3600);
+            config.Save();
+        }
+        config.AutomaticZoneEnemyExportIntervalSeconds = Math.Clamp(config.AutomaticZoneEnemyExportIntervalSeconds, 1, 3600);
         ImGui.Text($"Current Territory Id: {territoryId}");
         ImGui.Text($"Stored Enemy Entries: {zoneLookup.Count}");
+        ImGui.Text($"Unsaved Visible Entries: {lastUnsavedEnemyCount}");
+        if (!string.IsNullOrWhiteSpace(lastUnsavedEnemyPreview))
+        {
+            ImGui.TextWrapped($"Last Found: {lastUnsavedEnemyPreview}");
+        }
+        if (lastUnsavedEnemyDetectedUtc.HasValue)
+        {
+            ImGui.Text($"Last Detection (UTC): {lastUnsavedEnemyDetectedUtc.Value:yyyy-MM-dd HH:mm:ss}");
+        }
 
         using var disabled = ImRaii.Disabled(!exportTask.IsCompleted || territoryId == 0);
-        if (ImGui.Button("Generate Missing Zone Enemies"))
+        if (ImGui.Button("Generate Missing Zone Enemies Now"))
         {
-            StartZoneEnemyExport();
+            StartZoneEnemyExport(isAutomatic: false);
         }
 
         ImGui.SameLine();
@@ -181,7 +244,6 @@ public unsafe class BatchExportTab : ITab
             return;
         }
 
-        CharacterBatchCandidate[] candidates;
         var selectedSlots = GetSelectedEquipmentSlots().ToHashSet();
         if (selectedSlots.Count == 0)
         {
@@ -189,26 +251,10 @@ public unsafe class BatchExportTab : ITab
             return;
         }
 
-        try
-        {
-            candidates = FindBodyItemCandidates(parsedCharacter, selectedSlots, testMode).ToArray();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to build body item export candidates");
-            statusMessage = $"Failed to prepare body item export: {ex.Message}";
-            return;
-        }
-        if (candidates.Length == 0)
-        {
-            statusMessage = "No matching equipable item models were found.";
-            return;
-        }
-
-        cancelToken = new CancellationTokenSource();
+        cancelToken = CreateOwnedCancellationTokenSource();
         progress = new ProgressWrapper
         {
-            Progress = new ExportProgress(candidates.Length, "Equipable Items")
+            Progress = new ExportProgress(testMode ? bodyItemTestCount : EstimateBodyItemExportTotal(selectedSlots.Count), "Equipable Items")
         };
 
         var outputDir = GetBodyItemOutputDirectory();
@@ -217,11 +263,20 @@ public unsafe class BatchExportTab : ITab
         {
             Directory.CreateDirectory(outputDir);
             var exportConfig = CreateBatchExportConfig();
-            ExportCharacterBatch(candidates, outputDir, exportConfig, progress.Progress!, true, (candidate, exportName) =>
+            IEnumerable<CharacterBatchCandidate> candidates;
+            try
             {
-                logger.LogInformation("Exported item {ItemId} to {ExportName}", candidate.ItemId, exportName);
-            });
-            ExportUtil.OpenExportFolderInExplorer(outputDir, config, cancelToken.Token);
+                candidates = FindBodyItemCandidates((nint)character, parsedCharacter, selectedSlots, testMode);
+                ExportCharacterBatch(candidates, outputDir, exportConfig, progress.Progress!, true, (candidate, exportName) =>
+                {
+                    logger.LogInformation("Exported item {ItemId} to {ExportName}", candidate.ItemId, exportName);
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed during body item batch export");
+                throw;
+            }
         }, cancelToken.Token);
 
         statusMessage = testMode
@@ -229,29 +284,39 @@ public unsafe class BatchExportTab : ITab
             : "Queued export for all equipable items.";
     }
 
-    private void StartZoneEnemyExport()
+    private void StartZoneEnemyExport(bool isAutomatic)
     {
         if (!exportTask.IsCompleted)
         {
-            statusMessage = "Another export is already running.";
+            if (!isAutomatic)
+            {
+                statusMessage = "Another export is already running.";
+            }
             return;
         }
 
         var territoryId = clientState.TerritoryType;
         if (territoryId == 0)
         {
-            statusMessage = "No active territory was detected.";
+            if (!isAutomatic)
+            {
+                statusMessage = "No active territory was detected.";
+            }
             return;
         }
 
         var candidates = CollectZoneEnemyCandidates(territoryId).ToArray();
+        UpdateUnsavedEnemyStatus(candidates);
         if (candidates.Length == 0)
         {
-            statusMessage = $"No new visible battle NPC model sets were found for territory {territoryId}.";
+            if (!isAutomatic)
+            {
+                statusMessage = $"No new visible battle NPC model sets were found for territory {territoryId}.";
+            }
             return;
         }
 
-        cancelToken = new CancellationTokenSource();
+        cancelToken = CreateOwnedCancellationTokenSource();
         progress = new ProgressWrapper
         {
             Progress = new ExportProgress(candidates.Length, "Zone Enemies")
@@ -279,18 +344,23 @@ public unsafe class BatchExportTab : ITab
                 };
             });
             config.Save();
-            ExportUtil.OpenExportFolderInExplorer(outputDir, config, cancelToken.Token);
+            ClearUnsavedEnemyStatus();
         }, cancelToken.Token);
 
-        statusMessage = $"Queued export for {candidates.Length} new enemy model set(s) in territory {territoryId}.";
+        if (!isAutomatic)
+        {
+            statusMessage = $"Queued export for {candidates.Length} new enemy model set(s) in territory {territoryId}.";
+        }
     }
 
     private IEnumerable<CharacterBatchCandidate> FindBodyItemCandidates(
+        nint templateSourceCharacterAddress,
         ParsedCharacterInfo templateCharacter,
         IReadOnlySet<EquipmentSlot> selectedSlots,
         bool testMode)
     {
-        var templates = BuildEquipmentTemplates(templateCharacter)
+        var raceCode = GetRaceCode(templateCharacter.GenderRace);
+        var templates = BuildEquipmentTemplates(templateSourceCharacterAddress, templateCharacter, selectedSlots)
             .Where(template => selectedSlots.Contains(template.Slot))
             .ToDictionary(template => template.Slot, template => template);
         var found = 0;
@@ -305,22 +375,18 @@ public unsafe class BatchExportTab : ITab
             var itemName = item.Name.ExtractText();
             if (string.IsNullOrWhiteSpace(itemName))
             {
-                continue;
+                itemName = $"item_{item.RowId}";
             }
 
             foreach (var slot in selectedSlots)
             {
-                if (!templates.TryGetValue(slot, out var template))
-                {
-                    continue;
-                }
-
                 if (!IsTemplateApplicableToItem(slot, item))
                 {
                     continue;
                 }
 
-                if (!TryBuildItemExportModel(item, template, out var exportModel))
+                templates.TryGetValue(slot, out var template);
+                if (!TryBuildItemExportModel(item, slot, template, raceCode, out var exportModel))
                 {
                     continue;
                 }
@@ -340,7 +406,8 @@ public unsafe class BatchExportTab : ITab
                     itemName,
                     $"item:{item.RowId}:{slot}",
                     exportInfo,
-                    (int)item.RowId);
+                    (int)item.RowId,
+                    GetEquipmentSlotFolderName(slot));
 
                 found++;
                 if (testMode && found >= bodyItemTestCount)
@@ -384,7 +451,8 @@ public unsafe class BatchExportTab : ITab
                 continue;
             }
 
-            var lookupKey = string.Join("|", modelPaths);
+            var identity = ResolveBattleNpcIdentity(character, modelPaths);
+            var lookupKey = identity.LookupKey;
             if (!seenThisRun.Add(lookupKey))
             {
                 continue;
@@ -395,14 +463,9 @@ public unsafe class BatchExportTab : ITab
                 continue;
             }
 
-            var displayName = string.IsNullOrWhiteSpace(character.Name.TextValue)
-                ? $"battle_npc_{character.BaseId}"
-                : character.Name.TextValue;
-            var exportName = $"{displayName.SanitizeFileName()}_{character.BaseId:X}_{seenThisRun.Count:D3}";
-
             yield return new CharacterBatchCandidate(
-                exportName,
-                displayName,
+                identity.ExportName,
+                identity.DisplayName,
                 lookupKey,
                 parsedCharacter);
         }
@@ -416,24 +479,48 @@ public unsafe class BatchExportTab : ITab
         bool inlineBuffer,
         Action<CharacterBatchCandidate, string> onExported)
     {
-        var composer = composerFactory.CreateCharacterComposer(outputDir, exportConfig, cancelToken.Token);
+        var composersByOutputDir = new Dictionary<string, CharacterComposer>(StringComparer.OrdinalIgnoreCase);
+        var exportedCount = 0;
 
         foreach (var candidate in candidates)
         {
             cancelToken.Token.ThrowIfCancellationRequested();
+            var candidateOutputDir = string.IsNullOrWhiteSpace(candidate.ExportSubfolder)
+                ? outputDir
+                : Path.Combine(outputDir, candidate.ExportSubfolder);
+            Directory.CreateDirectory(candidateOutputDir);
+            if (!composersByOutputDir.TryGetValue(candidateOutputDir, out var composer))
+            {
+                composer = composerFactory.CreateCharacterComposer(candidateOutputDir, exportConfig, cancelToken.Token);
+                composersByOutputDir[candidateOutputDir] = composer;
+            }
 
             var scene = new SceneBuilder();
             var root = new NodeBuilder(candidate.ExportName);
             scene.AddNode(root);
 
             composer.Compose(candidate.CharacterInfo, scene, root, new ExportProgress(candidate.CharacterInfo.Models.Count, candidate.DisplayName));
-            ExportUtil.SaveAsType(scene.ToGltf2(), exportConfig.ExportType, outputDir, candidate.ExportName);
+            ExportUtil.SaveAsType(scene.ToGltf2(), exportConfig.ExportType, candidateOutputDir, candidate.ExportName);
             if (inlineBuffer)
             {
-                InlineGltfBuffer(Path.Combine(outputDir, candidate.ExportName.SanitizeFileName() + ".gltf"));
+                InlineGltfBuffer(Path.Combine(candidateOutputDir, candidate.ExportName.SanitizeFileName() + ".gltf"));
+                DeleteUnexpectedItemExportFiles(candidateOutputDir, candidate.ExportName);
             }
             onExported(candidate, candidate.ExportName);
             rootProgress.IncrementProgress();
+            exportedCount++;
+
+            if (exportedCount % 10 == 0)
+            {
+                Thread.Sleep(15);
+            }
+
+            if (exportedCount % 100 == 0)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+            }
         }
 
         rootProgress.IsComplete = true;
@@ -444,7 +531,7 @@ public unsafe class BatchExportTab : ITab
         var exportConfig = config.ExportConfig.Clone();
         exportConfig.SetDefaultCloneOptions();
         exportConfig.ExportType = ExportType.GLTF;
-        exportConfig.PoseMode = SkeletonUtils.PoseMode.Local;
+        exportConfig.PoseMode = SkeletonUtils.PoseMode.None;
         exportConfig.UseDeformer = true;
         return exportConfig;
     }
@@ -462,14 +549,28 @@ public unsafe class BatchExportTab : ITab
             $"BodyItems-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}");
     }
 
+    private int EstimateBodyItemExportTotal(int selectedSlotCount)
+    {
+        try
+        {
+            var itemCount = dataManager.GetExcelSheet<Item>().Count();
+            return Math.Max(1, itemCount * Math.Max(1, selectedSlotCount));
+        }
+        catch
+        {
+            return 1000;
+        }
+    }
+
     private string GetZoneEnemyOutputDirectory(uint territoryId)
     {
+        var locationFolder = GetCurrentLocationFolderName(territoryId);
         if (!string.IsNullOrWhiteSpace(config.BatchZoneEnemyExportDirectory))
         {
-            return config.BatchZoneEnemyExportDirectory;
+            return Path.Combine(config.BatchZoneEnemyExportDirectory, locationFolder);
         }
 
-        return Path.Combine(config.ExportDirectory, "BatchExports", "ZoneEnemies", $"territory_{territoryId:D4}");
+        return Path.Combine(config.ExportDirectory, "BatchExports", "ZoneEnemies", locationFolder);
     }
 
     private static IEnumerable<string> GetAllModelPaths(ParsedCharacterInfo characterInfo)
@@ -499,29 +600,278 @@ public unsafe class BatchExportTab : ITab
         }
 
         var json = JsonNode.Parse(File.ReadAllText(gltfPath))?.AsObject();
-        if (json == null || json["buffers"] is not JsonArray buffers || buffers.Count == 0 || buffers[0] is not JsonObject bufferObject)
+        if (json == null || json["buffers"] is not JsonArray buffers || buffers.Count == 0)
         {
             return;
         }
 
-        var uri = bufferObject["uri"]?.GetValue<string>();
-        if (string.IsNullOrWhiteSpace(uri) || uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        var gltfDirectory = Path.GetDirectoryName(gltfPath)!;
+        var binFilesToDelete = new List<string>();
+        var changed = false;
+
+        foreach (var node in buffers)
+        {
+            if (node is not JsonObject bufferObject)
+            {
+                continue;
+            }
+
+            var uri = bufferObject["uri"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(uri) || uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var binPath = Path.GetFullPath(Path.Combine(gltfDirectory, uri));
+            if (!File.Exists(binPath))
+            {
+                continue;
+            }
+
+            bufferObject["uri"] = $"data:application/octet-stream;base64,{Convert.ToBase64String(File.ReadAllBytes(binPath))}";
+            binFilesToDelete.Add(binPath);
+            changed = true;
+        }
+
+        if (!changed)
         {
             return;
         }
 
-        var binPath = Path.Combine(Path.GetDirectoryName(gltfPath)!, uri);
-        if (!File.Exists(binPath))
-        {
-            return;
-        }
-
-        bufferObject["uri"] = $"data:application/octet-stream;base64,{Convert.ToBase64String(File.ReadAllBytes(binPath))}";
         File.WriteAllText(gltfPath, json.ToJsonString());
-        File.Delete(binPath);
+        foreach (var binPath in binFilesToDelete.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (File.Exists(binPath))
+            {
+                File.Delete(binPath);
+            }
+        }
     }
 
-    private IEnumerable<EquipmentTemplate> BuildEquipmentTemplates(ParsedCharacterInfo templateCharacter)
+    private static void DeleteUnexpectedItemExportFiles(string outputDir, string exportName)
+    {
+        var sanitizedName = exportName.SanitizeFileName();
+        foreach (var extension in new[] { ".obj", ".mtl", ".glb" })
+        {
+            var filePath = Path.Combine(outputDir, sanitizedName + extension);
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+    }
+
+    private void OnFrameworkUpdate(IFramework _)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            TryStartAutomaticZoneEnemyExport();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Automatic zone enemy export check failed");
+            statusMessage = $"Automatic zone enemy export check failed: {ex.Message}";
+        }
+    }
+
+    private void TryStartAutomaticZoneEnemyExport()
+    {
+        if (!config.EnableAutomaticZoneEnemyExport)
+        {
+            return;
+        }
+
+        if (automaticZoneEnemyExportPending)
+        {
+            return;
+        }
+
+        if (!exportTask.IsCompleted)
+        {
+            return;
+        }
+
+        var territoryId = clientState.TerritoryType;
+        if (territoryId == 0)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        if (territoryId != lastAutoEnemyTerritoryId)
+        {
+            lastAutoEnemyTerritoryId = territoryId;
+            lastAutoEnemyScanUtc = DateTime.MinValue;
+        }
+
+        if (now - lastAutoEnemyScanUtc < TimeSpan.FromSeconds(config.AutomaticZoneEnemyExportIntervalSeconds))
+        {
+            return;
+        }
+
+        lastAutoEnemyScanUtc = now;
+        pendingAutomaticZoneEnemyTerritoryId = territoryId;
+        automaticZoneEnemyExportPending = true;
+    }
+
+    private CancellationTokenSource CreateOwnedCancellationTokenSource()
+    {
+        var cts = new CancellationTokenSource();
+        ownedCancellationSources.Add(cts);
+        return cts;
+    }
+
+    private void ProcessPendingAutomaticZoneEnemyExport()
+    {
+        if (isDisposed || !automaticZoneEnemyExportPending)
+        {
+            return;
+        }
+
+        if (!exportTask.IsCompleted)
+        {
+            return;
+        }
+
+        var scheduledTerritoryId = pendingAutomaticZoneEnemyTerritoryId;
+        if (!config.EnableAutomaticZoneEnemyExport)
+        {
+            automaticZoneEnemyExportPending = false;
+            return;
+        }
+
+        if (clientState.TerritoryType != scheduledTerritoryId)
+        {
+            automaticZoneEnemyExportPending = false;
+            return;
+        }
+
+        automaticZoneEnemyExportPending = false;
+        StartZoneEnemyExport(isAutomatic: true);
+    }
+
+    private string GetCurrentLocationFolderName(uint territoryId)
+    {
+        try
+        {
+            var territory = dataManager.GetExcelSheet<TerritoryType>().GetRow(territoryId);
+            var placeName = territory.PlaceName.ValueNullable?.Name.ExtractText();
+            if (!string.IsNullOrWhiteSpace(placeName))
+            {
+                return $"{placeName.SanitizeFileName()}_{territoryId:D4}";
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to resolve place name for territory {TerritoryId}", territoryId);
+        }
+
+        return $"territory_{territoryId:D4}";
+    }
+
+    private void UpdateUnsavedEnemyStatus(IReadOnlyList<CharacterBatchCandidate> candidates)
+    {
+        lastUnsavedEnemyCount = candidates.Count;
+        lastUnsavedEnemyPreview = candidates.Count > 0 ? candidates[0].ExportName : null;
+        lastUnsavedEnemyDetectedUtc = candidates.Count > 0 ? DateTime.UtcNow : null;
+    }
+
+    private void ClearUnsavedEnemyStatus()
+    {
+        lastUnsavedEnemyCount = 0;
+        lastUnsavedEnemyPreview = null;
+        lastUnsavedEnemyDetectedUtc = null;
+    }
+
+    private static string GetEquipmentSlotFolderName(EquipmentSlot slot)
+    {
+        return slot switch
+        {
+            EquipmentSlot.MainHand => "MainHand",
+            EquipmentSlot.OffHand => "OffHand",
+            EquipmentSlot.Head => "Head",
+            EquipmentSlot.Body => "Body",
+            EquipmentSlot.Hands => "Hands",
+            EquipmentSlot.Legs => "Legs",
+            EquipmentSlot.Feet => "Shoes",
+            EquipmentSlot.Earrings => "Earrings",
+            EquipmentSlot.Necklace => "Necklace",
+            EquipmentSlot.Wrists => "Wrists",
+            EquipmentSlot.Ring => "Rings",
+            _ => "Other"
+        };
+    }
+
+    private BattleNpcIdentity ResolveBattleNpcIdentity(ICharacter character, IReadOnlyList<string> modelPaths)
+    {
+        var displayName = string.IsNullOrWhiteSpace(character.Name.TextValue)
+            ? $"battle_npc_{character.BaseId}"
+            : character.Name.TextValue.Trim();
+        var bnpcNameId = GetUIntPropertyValue(character, "NameId", "BNpcNameId");
+        var bnpcBaseId = character.BaseId;
+        var bnpcModelId = ResolveBattleNpcModelId(bnpcBaseId);
+        var exportName = $"{displayName.SanitizeFileName()}__{bnpcNameId}__{bnpcBaseId}__{bnpcModelId}";
+        var lookupKey = string.Join("|",
+        [
+            displayName,
+            bnpcNameId.ToString(),
+            bnpcBaseId.ToString(),
+            bnpcModelId.ToString(),
+            .. modelPaths
+        ]);
+
+        return new BattleNpcIdentity(displayName, exportName, lookupKey, bnpcNameId, bnpcBaseId, bnpcModelId);
+    }
+
+    private uint ResolveBattleNpcModelId(uint bnpcBaseId)
+    {
+        if (bnpcBaseId == 0)
+        {
+            return 0;
+        }
+
+        try
+        {
+            var row = dataManager.GetExcelSheet<BNpcBase>().GetRow(bnpcBaseId);
+            return row.ModelChara.RowId;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to resolve BNpcBase model id for base id {BNpcBaseId}", bnpcBaseId);
+            return 0;
+        }
+    }
+
+    private static uint GetUIntPropertyValue(object source, params string[] propertyNames)
+    {
+        foreach (var propertyName in propertyNames)
+        {
+            var value = source.GetType().GetProperty(propertyName)?.GetValue(source);
+            switch (value)
+            {
+                case uint uintValue:
+                    return uintValue;
+                case ushort ushortValue:
+                    return ushortValue;
+                case byte byteValue:
+                    return byteValue;
+                case int intValue when intValue >= 0:
+                    return (uint)intValue;
+            }
+        }
+
+        return 0;
+    }
+
+    private IEnumerable<EquipmentTemplate> BuildEquipmentTemplates(
+        nint templateSourceCharacterAddress,
+        ParsedCharacterInfo templateCharacter,
+        IReadOnlySet<EquipmentSlot> selectedSlots)
     {
         var yieldedSlots = new HashSet<EquipmentSlot>();
         foreach (var model in templateCharacter.Models)
@@ -555,30 +905,156 @@ public unsafe class BatchExportTab : ITab
                 yield return new EquipmentTemplate(EquipmentSlot.OffHand, offhandWeaponModel);
             }
         }
+
+        var fallbackTemplates = new List<EquipmentTemplate>();
+        unsafe
+        {
+            var templateSourceCharacter = (Character*)templateSourceCharacterAddress;
+            if (templateSourceCharacter == null || templateSourceCharacter->DrawObject == null)
+            {
+                yield break;
+            }
+
+            var drawObject = templateSourceCharacter->DrawObject;
+            if (drawObject->GetObjectType() != ObjectType.CharacterBase)
+            {
+                yield break;
+            }
+
+            var characterBase = (CharacterBase*)drawObject;
+            if (characterBase->GetModelType() != CharacterBase.ModelType.Human)
+            {
+                yield break;
+            }
+
+            foreach (var slot in selectedSlots)
+            {
+                if (yieldedSlots.Contains(slot))
+                {
+                    continue;
+                }
+
+                if (!TryResolveFallbackTemplate((nint)characterBase, slot, out var fallbackTemplate))
+                {
+                    continue;
+                }
+
+                yieldedSlots.Add(slot);
+                fallbackTemplates.Add(fallbackTemplate);
+            }
+        }
+
+        foreach (var fallbackTemplate in fallbackTemplates)
+        {
+            yield return fallbackTemplate;
+        }
     }
 
-    private bool TryBuildItemExportModel(Item item, EquipmentTemplate template, out ParsedModelInfo exportModel)
+    private bool TryResolveFallbackTemplate(nint characterBaseAddress, EquipmentSlot slot, out EquipmentTemplate template)
+    {
+        template = null!;
+        var slotIndex = GetHumanModelSlotIndex(slot);
+        if (slotIndex == null)
+        {
+            return false;
+        }
+
+        unsafe
+        {
+            var characterBase = (CharacterBase*)characterBaseAddress;
+            if (characterBase == null)
+            {
+                return false;
+            }
+
+            var modelPath = characterBase->ResolveMdlPath((byte)slotIndex.Value);
+            if (string.IsNullOrWhiteSpace(modelPath))
+            {
+                return false;
+            }
+
+            var parsedModel = resolverService.ParseModelFromPath(modelPath);
+            if (parsedModel == null)
+            {
+                return false;
+            }
+
+            template = new EquipmentTemplate(slot, parsedModel);
+            return true;
+        }
+    }
+
+    private static HumanModelSlotIndex? GetHumanModelSlotIndex(EquipmentSlot slot)
+    {
+        return slot switch
+        {
+            EquipmentSlot.Head => HumanModelSlotIndex.Head,
+            EquipmentSlot.Body => HumanModelSlotIndex.Top,
+            EquipmentSlot.Hands => HumanModelSlotIndex.Arms,
+            EquipmentSlot.Legs => HumanModelSlotIndex.Legs,
+            EquipmentSlot.Feet => HumanModelSlotIndex.Feet,
+            EquipmentSlot.Earrings => HumanModelSlotIndex.Ear,
+            EquipmentSlot.Necklace => HumanModelSlotIndex.Neck,
+            EquipmentSlot.Wrists => HumanModelSlotIndex.Wrist,
+            EquipmentSlot.Ring => HumanModelSlotIndex.RFinger,
+            _ => null
+        };
+    }
+
+    private bool TryBuildItemExportModel(Item item, EquipmentSlot slot, EquipmentTemplate? template, string raceCode, out ParsedModelInfo exportModel)
     {
         exportModel = null!;
-        if (!TryResolveItemModelInfo(item, template.Slot, out var itemModel))
+        if (!TryResolveItemModelInfo(item, slot, out var itemModel))
         {
             return false;
         }
 
-        var candidatePath = ApplyModelToTemplatePath(template.Model.Path.FullPath, template.Slot, itemModel);
-        if (!pack.FileExists(candidatePath, out _))
+        var candidatePaths = new List<string>();
+        if (template != null)
+        {
+            candidatePaths.Add(ApplyModelToTemplatePath(template.Model.Path.FullPath, slot, itemModel));
+        }
+
+        candidatePaths.AddRange(BuildCanonicalItemModelPaths(slot, itemModel, raceCode));
+        var candidatePath = candidatePaths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(path => pack.FileExists(path, out _));
+
+        if (string.IsNullOrWhiteSpace(candidatePath))
         {
             return false;
         }
 
-        var exportMaterials = ApplyModelToTemplateMaterials(template.Model.Materials, template.Slot, itemModel);
+        if (template != null && string.Equals(candidatePath, ApplyModelToTemplatePath(template.Model.Path.FullPath, slot, itemModel), StringComparison.OrdinalIgnoreCase))
+        {
+            var exportMaterials = ApplyModelToTemplateMaterials(template.Model.Materials, slot, itemModel);
+            exportModel = new ParsedModelInfo(
+                candidatePath,
+                ApplyModelToTemplatePath(template.Model.Path.GamePath, slot, itemModel),
+                true,
+                template.Model.Deformer,
+                template.Model.ShapeAttributeGroup,
+                exportMaterials,
+                null,
+                null);
+
+            return true;
+        }
+
+        var resolvedModel = resolverService.ParseModelFromPath(candidatePath);
+        if (resolvedModel == null)
+        {
+            return false;
+        }
+
         exportModel = new ParsedModelInfo(
             candidatePath,
-            ApplyModelToTemplatePath(template.Model.Path.GamePath, template.Slot, itemModel),
+            candidatePath,
             true,
-            template.Model.Deformer,
-            template.Model.ShapeAttributeGroup,
-            exportMaterials,
+            template?.Model.Deformer,
+            template?.Model.ShapeAttributeGroup,
+            resolvedModel.Materials,
             null,
             null);
 
@@ -631,6 +1107,61 @@ public unsafe class BatchExportTab : ITab
         }
 
         return path;
+    }
+
+    private static IEnumerable<string> BuildCanonicalItemModelPaths(EquipmentSlot slot, ItemModelInfo itemModel, string raceCode)
+    {
+        switch (slot)
+        {
+            case EquipmentSlot.MainHand:
+            case EquipmentSlot.OffHand:
+                yield return $"chara/weapon/w{itemModel.PrimaryId:D4}/obj/body/b{itemModel.SecondaryId:D4}/model/w{itemModel.PrimaryId:D4}b{itemModel.SecondaryId:D4}.mdl";
+                yield break;
+            case EquipmentSlot.Head:
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/{raceCode}e{itemModel.PrimaryId:D4}_met.mdl";
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/c0101e{itemModel.PrimaryId:D4}_met.mdl";
+                yield break;
+            case EquipmentSlot.Body:
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/{raceCode}e{itemModel.PrimaryId:D4}_top.mdl";
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/c0101e{itemModel.PrimaryId:D4}_top.mdl";
+                yield break;
+            case EquipmentSlot.Hands:
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/{raceCode}e{itemModel.PrimaryId:D4}_glv.mdl";
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/c0101e{itemModel.PrimaryId:D4}_glv.mdl";
+                yield break;
+            case EquipmentSlot.Legs:
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/{raceCode}e{itemModel.PrimaryId:D4}_dwn.mdl";
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/c0101e{itemModel.PrimaryId:D4}_dwn.mdl";
+                yield break;
+            case EquipmentSlot.Feet:
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/{raceCode}e{itemModel.PrimaryId:D4}_sho.mdl";
+                yield return $"chara/equipment/e{itemModel.PrimaryId:D4}/model/c0101e{itemModel.PrimaryId:D4}_sho.mdl";
+                yield break;
+            case EquipmentSlot.Earrings:
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/{raceCode}a{itemModel.PrimaryId:D4}_ear.mdl";
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/c0101a{itemModel.PrimaryId:D4}_ear.mdl";
+                yield break;
+            case EquipmentSlot.Necklace:
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/{raceCode}a{itemModel.PrimaryId:D4}_nek.mdl";
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/c0101a{itemModel.PrimaryId:D4}_nek.mdl";
+                yield break;
+            case EquipmentSlot.Wrists:
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/{raceCode}a{itemModel.PrimaryId:D4}_wrs.mdl";
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/c0101a{itemModel.PrimaryId:D4}_wrs.mdl";
+                yield break;
+            case EquipmentSlot.Ring:
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/{raceCode}a{itemModel.PrimaryId:D4}_rir.mdl";
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/{raceCode}a{itemModel.PrimaryId:D4}_ril.mdl";
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/c0101a{itemModel.PrimaryId:D4}_rir.mdl";
+                yield return $"chara/accessory/a{itemModel.PrimaryId:D4}/model/c0101a{itemModel.PrimaryId:D4}_ril.mdl";
+                yield break;
+        }
+    }
+
+    private static string GetRaceCode(Meddle.Utils.Constants.GenderRace genderRace)
+    {
+        var raceCode = (ushort)genderRace;
+        return raceCode == 0 ? "c0101" : $"c{raceCode:D4}";
     }
 
     private static string ReplaceFirst(string input, string pattern, string replacement)
@@ -851,7 +1382,15 @@ public unsafe class BatchExportTab : ITab
         string DisplayName,
         string LookupKey,
         ParsedCharacterInfo CharacterInfo,
-        int? ItemId = null);
+        int? ItemId = null,
+        string? ExportSubfolder = null);
+    private sealed record BattleNpcIdentity(
+        string DisplayName,
+        string ExportName,
+        string LookupKey,
+        uint BNpcNameId,
+        uint BNpcBaseId,
+        uint BNpcModelId);
 
     private sealed record EquipmentTemplate(EquipmentSlot Slot, ParsedModelInfo Model);
     private readonly record struct ItemModelInfo(ushort PrimaryId, ushort SecondaryId, ushort Variant);
