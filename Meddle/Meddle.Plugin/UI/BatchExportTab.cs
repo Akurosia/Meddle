@@ -3,6 +3,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
@@ -35,6 +36,7 @@ public unsafe class BatchExportTab : ITab
     private readonly IClientState clientState;
     private readonly IDataManager dataManager;
     private readonly IFramework framework;
+    private readonly IDalamudPluginInterface pluginInterface;
     private readonly List<CancellationTokenSource> ownedCancellationSources = [];
 
     private ICharacter? selectedCharacter;
@@ -62,7 +64,8 @@ public unsafe class BatchExportTab : ITab
         IObjectTable objectTable,
         IClientState clientState,
         IDataManager dataManager,
-        IFramework framework)
+        IFramework framework,
+        IDalamudPluginInterface pluginInterface)
     {
         this.logger = logger;
         this.commonUi = commonUi;
@@ -74,8 +77,10 @@ public unsafe class BatchExportTab : ITab
         this.clientState = clientState;
         this.dataManager = dataManager;
         this.framework = framework;
+        this.pluginInterface = pluginInterface;
         cancelToken = CreateOwnedCancellationTokenSource();
         this.framework.Update += OnFrameworkUpdate;
+        this.pluginInterface.UiBuilder.Draw += OnUiBuilderDraw;
     }
 
     public string Name => "Batch";
@@ -85,7 +90,6 @@ public unsafe class BatchExportTab : ITab
     public void Draw()
     {
         UiUtil.DrawProgress(exportTask, progress, cancelToken);
-        ProcessPendingAutomaticZoneEnemyExport();
         commonUi.DrawCharacterSelect(ref selectedCharacter, CharacterValidationFlags.IsVisible);
 
         if (!string.IsNullOrWhiteSpace(statusMessage))
@@ -108,6 +112,7 @@ public unsafe class BatchExportTab : ITab
 
         isDisposed = true;
         framework.Update -= OnFrameworkUpdate;
+        pluginInterface.UiBuilder.Draw -= OnUiBuilderDraw;
         foreach (var cts in ownedCancellationSources)
         {
             try
@@ -677,6 +682,24 @@ public unsafe class BatchExportTab : ITab
         {
             logger.LogError(ex, "Automatic zone enemy export check failed");
             statusMessage = $"Automatic zone enemy export check failed: {ex.Message}";
+        }
+    }
+
+    private void OnUiBuilderDraw()
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        try
+        {
+            ProcessPendingAutomaticZoneEnemyExport();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Automatic zone enemy export dispatch failed");
+            statusMessage = $"Automatic zone enemy export dispatch failed: {ex.Message}";
         }
     }
 
