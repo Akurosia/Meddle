@@ -436,6 +436,11 @@ public unsafe class BatchExportTab : ITab
                 continue;
             }
 
+            if (IsNonEnemyBuddy(character))
+            {
+                continue;
+            }
+
             if (!character.IsValidCharacterBase(CharacterValidationFlags.IsVisible))
             {
                 continue;
@@ -458,6 +463,11 @@ public unsafe class BatchExportTab : ITab
             }
 
             var identity = ResolveBattleNpcIdentity(character, modelPaths);
+            if (!HasCompleteBattleNpcIdentity(identity))
+            {
+                continue;
+            }
+
             var lookupKey = identity.LookupKey;
             if (!seenThisRun.Add(lookupKey))
             {
@@ -850,6 +860,26 @@ public unsafe class BatchExportTab : ITab
         ]);
 
         return new BattleNpcIdentity(displayName, exportName, lookupKey, bnpcNameId, bnpcBaseId, bnpcModelId);
+    }
+
+    private static bool HasCompleteBattleNpcIdentity(BattleNpcIdentity identity)
+    {
+        return identity.BNpcNameId != 0
+               && identity.BNpcBaseId != 0
+               && identity.BNpcModelId != 0;
+    }
+
+    private static bool IsNonEnemyBuddy(ICharacter character)
+    {
+        if (character is not IBattleNpc battleNpc)
+        {
+            return false;
+        }
+
+        return battleNpc.BattleNpcKind is BattleNpcSubKind.Pet
+            or BattleNpcSubKind.Buddy
+            or BattleNpcSubKind.RaceChocobo
+            or BattleNpcSubKind.NpcPartyMember;
     }
 
     private uint ResolveBattleNpcModelId(uint bnpcBaseId)
