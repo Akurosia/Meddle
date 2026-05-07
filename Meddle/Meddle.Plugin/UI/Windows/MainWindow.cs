@@ -23,7 +23,7 @@ public sealed class MainWindow : MeddleWindowBase
                       DebugWindow debugWindow, 
                       LayoutWindow layoutWindow, UpdateWindow updateWindow,
                       Configuration config) : 
-        base(log, "Meddle", ImGuiWindowFlags.MenuBar)
+        base(log, "AkuMeddle", ImGuiWindowFlags.MenuBar)
     {
         this.tabs = tabs.OrderBy(x => x.Order).Where(x => x.MenuType == MenuType.Default).ToArray();
         this.log = log;

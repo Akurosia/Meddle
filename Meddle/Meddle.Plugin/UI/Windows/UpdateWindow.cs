@@ -10,7 +10,7 @@ namespace Meddle.Plugin.UI.Windows;
 public class UpdateWindow : Window
 {
     private readonly Configuration config;
-    public UpdateWindow(Configuration config) : base("Meddle Updates")
+    public UpdateWindow(Configuration config) : base("AkuMeddle Updates")
     {
         this.config = config;
         SizeConstraints = new WindowSizeConstraints
@@ -108,7 +108,7 @@ public class UpdateWindow : Window
             [
                 new WarningUpdateLine(" ! NOTE: MeddleTools is now distributed as a blender extension, please re-install following the instructions on the MeddleTools page."),
                 new LinkLine("https://github.com/PassiveModding/MeddleTools", Color: new Vector4(0.95f, 0.47f, 0.17f, 1)),
-                new TextUpdateLine(" + Added an option (enabled by default) to correct triangle winding for models exported from Meddle. " +
+                new TextUpdateLine(" + Added an option (enabled by default) to correct triangle winding for models exported from AkuMeddle. " +
                                    "This resolves a long-standing issue where blender would mess up face orientations on import for certain models."),
                 new TextUpdateLine(" + Added proper decal resolution and support for FC crest decals to be exported."),
                 new TextUpdateLine(" + Various improvements to improve stability when processing textures."),
@@ -186,7 +186,7 @@ public class UpdateWindow : Window
 
     public override void Draw()
     {
-        ImGui.Text("Meddle Version: " + Assembly.GetExecutingAssembly().GetName().Version);
+        ImGui.Text("AkuMeddle Version: " + Assembly.GetExecutingAssembly().GetName().Version);
 
         // option to disable this window from opening automatically
         var showUpdateWindow = config.UpdateConfig.ShowUpdateWindow;

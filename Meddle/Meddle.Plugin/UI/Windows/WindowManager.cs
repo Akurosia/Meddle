@@ -10,7 +10,7 @@ namespace Meddle.Plugin.UI.Windows;
 
 public class WindowManager : IHostedService, IDisposable
 {
-    private const string Command = "/meddle";
+    private const string Command = "/akumeddle";
     private readonly ICommandManager commandManager;
     private readonly Configuration config;
     private readonly ILogger<WindowManager> log;

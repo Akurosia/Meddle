@@ -11,7 +11,7 @@ public sealed class DebugWindow : MeddleWindowBase
     private readonly ILogger<DebugWindow> log;
     private readonly ITab[] tabs;
 
-    public DebugWindow(IEnumerable<ITab> tabs, ILogger<DebugWindow> log) : base(log,"Meddle Debug")
+    public DebugWindow(IEnumerable<ITab> tabs, ILogger<DebugWindow> log) : base(log,"AkuMeddle Debug")
     {
         this.tabs = tabs.OrderBy(x => x.Order).Where(x => x.MenuType == MenuType.Debug).ToArray();
         this.log = log;

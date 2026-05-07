@@ -13,7 +13,7 @@ namespace Meddle.Plugin;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    public static readonly string DefaultExportDirectory = Path.Combine(Path.GetTempPath(), "Meddle.Export");
+    public static readonly string DefaultExportDirectory = Path.Combine(Path.GetTempPath(), "AkuMeddle.Export");
     private readonly IHost? app;
     private readonly ILogger pluginLog;
     public static ILogger<Plugin> Logger { get; private set; } = NullLogger<Plugin>.Instance;
@@ -26,7 +26,7 @@ public sealed class Plugin : IDalamudPlugin
         
         var dLogger = service.GetLog() ?? throw new InvalidOperationException("Service log is null");
         pluginLog = new PluginSerilogWrapper(dLogger.Logger);
-        pluginLog.LogDebug("Meddle Plugin initializing...");
+        pluginLog.LogDebug("AkuMeddle Plugin initializing...");
         Meddle.Utils.Global.Logger = pluginLog;
         
         try

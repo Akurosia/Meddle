@@ -20,7 +20,7 @@ public class AboutTab : ITab
         var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString(); 
         ImGui.Text($"Version: {assemblyVersion}");
         
-        ImGui.TextWrapped("Meddle is a tool that allows you to export models and animations directly from the game.");
+        ImGui.TextWrapped("AkuMeddle is a tool that allows you to export models and animations directly from the game.");
         ImGui.TextWrapped("It is still in development and may not work as expected.");
         ImGui.TextWrapped("Please report any issues on the GitHub repository.");
 
@@ -67,7 +67,7 @@ public class AboutTab : ITab
 
         if (ImGui.CollapsingHeader("How does meddle read this data?"))
         {
-            ImGui.TextWrapped("Meddle uses a combination of the following:");
+            ImGui.TextWrapped("AkuMeddle uses a combination of the following:");
             ImGui.BulletText("Reading the sqpack files packaged with the game.");
             ImGui.BulletText("Reading on-disk files from paths that are overwritten by plugins like Penumbra.");
             ImGui.BulletText("Reading the game's memory to retrieve paths and other information about the game-state.");
