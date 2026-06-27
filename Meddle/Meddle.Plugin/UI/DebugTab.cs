@@ -321,7 +321,7 @@ public class DebugTab : ITab
                             (result, exportPath) =>
                             {
                                 if (!result) return;
-                                var data = sqPack.GetFile(exportPathInput);
+                                var data = sqPack.GetFileOrReadFromDisk(exportPathInput);
                                 if (data == null)
                                 {
                                     notificationManager.AddNotification(new Notification
@@ -334,7 +334,7 @@ public class DebugTab : ITab
                                 
                                 var outPath = Path.Combine(exportPath, Path.GetFileName(exportPathInput));
                                 Directory.CreateDirectory(exportPath);
-                                File.WriteAllBytes(outPath, data.Value.file.RawData.ToArray());
+                                File.WriteAllBytes(outPath, data);
                                 ExportUtil.OpenExportFolderInExplorer(exportPath, config, cancellationTokenSource.Token);
                             }, config.ExportDirectory);
         }
@@ -378,7 +378,7 @@ public class DebugTab : ITab
                                                 if (!result) return;
                                                 exportTask = Task.Run(() =>
                                                 {
-                                                    var file = sqPack.GetFile(exportPathInput);
+                                                    var file = sqPack.GetFileOrReadFromDisk(exportPathInput);
                                                     if (file == null)
                                                     {
                                                         notificationManager.AddNotification(new Notification
@@ -392,11 +392,10 @@ public class DebugTab : ITab
                                                     var outPath = Path.Combine(exportPath, Path.GetFileName(exportPathInput));
                                                     
                                                     Directory.CreateDirectory(exportPath);
-                                                    var buf = file.Value.file.RawData.ToArray();
-                                                    File.WriteAllBytes(outPath, buf);
+                                                    File.WriteAllBytes(outPath, file);
                                                     
                                                     // Convert to png
-                                                    var tex = new TexFile(buf);
+                                                    var tex = new TexFile(file);
                                                     var texture = tex.ToResource().ToTexture();
                                                     using var memoryStream = new MemoryStream();
                                                     texture.Bitmap.Encode(memoryStream, SKEncodedImageFormat.Png, 100);

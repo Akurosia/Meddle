@@ -7,6 +7,7 @@ using Meddle.Plugin.Utils;
 using Meddle.Utils.Export;
 using Meddle.Utils.Files;
 using Meddle.Utils.Files.SqPack;
+using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI;
 
@@ -52,10 +53,10 @@ public class SamplerTab : ITab
                     UiUtil.Text($"Ref Count: {shpk->RefCount}", $"{shpk->RefCount}");
                     if (!loadedShpkFiles.TryGetValue(shpk->FileName.ParseString(), out var shaderPackage))
                     {
-                        var shpkData = pack.GetFile(shpk->FileName.ParseString());
+                        var shpkData = pack.GetFileOrReadFromDisk(shpk->FileName.ParseString());
                         if (shpkData != null)
                         {
-                            var shpkFile = new ShpkFile(shpkData.Value.file.RawData);
+                            var shpkFile = new ShpkFile(shpkData);
                             loadedShpkFiles[shpk->FileName.ParseString()] = new ShaderPackage(shpkFile, shpk->FileName.ParseString());
                         }
                     }
