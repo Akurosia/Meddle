@@ -41,6 +41,40 @@ public partial class Configuration : IPluginConfiguration
     public LayoutWindow.LayoutConfig LayoutConfig { get; set; } = new();
     public ExportConfiguration ExportConfig { get; set; } = new();
     public UpdateWindow.UpdateConfig UpdateConfig { get; set; } = new();
+    public RsfConfiguration RsfConfig { get; set; } = new();
+
+    public class RsfConfiguration
+    {
+        public Dictionary<ulong, string> RsfCache = new();
+        
+        public bool SetRsfValue(ulong key, byte[] value)
+        {
+            var stringValue = BitConverter.ToString(value).Replace("-", " ");
+            if (!RsfCache.TryGetValue(key, out var existingValue) || 
+                existingValue != stringValue)
+            {
+                RsfCache[key] = stringValue;
+                return true;
+            }
+
+            return false;
+        }
+        
+        public Dictionary<ulong, byte[]> GetRsfData()
+        {
+            var outDict = new Dictionary<ulong, byte[]>();
+            foreach (var (key, valueString) in RsfCache)
+            {
+                var rsfBytes = valueString.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(b => Convert.ToByte(b, 16)).ToArray();
+                var valueDataBuffer = new byte[64];
+                rsfBytes.CopyTo(valueDataBuffer);
+                
+                outDict[key] = valueDataBuffer;
+            }
+
+            return outDict;
+        }
+    }
     
     public class ExportConfiguration
     {
@@ -135,3 +169,4 @@ public partial class Configuration : IPluginConfiguration
         OnConfigurationSaved?.Invoke();
     }
 }
+
