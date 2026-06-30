@@ -12,6 +12,7 @@ using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Transforms;
+using ObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 
 namespace Meddle.Plugin.UI;
 
