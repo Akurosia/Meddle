@@ -229,7 +229,7 @@ public class UpdateWindow : Window
                 new TextUpdateLine(" + Updated to support parsing and exporting encrypted models (usually Ultimate bosses) once you have received the correct server-side data to load them."),
                 new TextUpdateLine(" + Updated to export all sides of cubemaps instead of just 1 side."),
                 new TextUpdateLine(" + Fixes for housing items not being dyed correctly."),
-                new TextUpdateLine(" + Disable partial skeleton guard prevent
+                new TextUpdateLine(" + Removed validationg for when a partial skeletons ConnectedBoneIndex matched its own index, which caused issues exporting some skeletons")
             ]
         }
     ];
