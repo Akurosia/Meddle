@@ -37,7 +37,7 @@ public class OptionsTab : ITab
         {
             if (ImGui.Button(FontAwesomeIcon.Redo.ToIconString()))
             {
-                config.ExportDirectory = Plugin.DefaultExportDirectory;
+                config.ExportDirectory = Configuration.DefaultExportDirectory;
                 config.Save();
             }
         }
