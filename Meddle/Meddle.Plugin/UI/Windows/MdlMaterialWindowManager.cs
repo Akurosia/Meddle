@@ -5,6 +5,7 @@ using FFXIVClientStructs.Interop;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Files;
 using Meddle.Utils.Files.SqPack;
+using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI.Windows;
 

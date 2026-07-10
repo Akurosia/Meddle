@@ -11,6 +11,7 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
+using ObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 
 namespace Meddle.Plugin.UI;
 

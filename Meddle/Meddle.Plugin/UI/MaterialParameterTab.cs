@@ -11,6 +11,7 @@ using Meddle.Plugin.Utils;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Files;
 using Meddle.Utils.Files.SqPack;
+using Meddle.Utils.Helpers;
 using CSCharacter = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using Material = FFXIVClientStructs.FFXIV.Client.Graphics.Render.Material;
 

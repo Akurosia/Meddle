@@ -69,6 +69,9 @@ public sealed class Plugin : IDalamudPlugin
             NotificationManager = app.Services.GetRequiredService<INotificationManager>();
             Meddle.Utils.Global.Logger = app.Services.GetRequiredService<ILogger<Meddle.Utils.Global>>();
             NativeDll.Initialize(app.Services.GetRequiredService<IDalamudPluginInterface>().AssemblyLocation.DirectoryName);
+            var pack = app.Services.GetRequiredService<SqPack>();
+            pack.RsfData = config.RsfConfig.GetRsfData();
+            app.Services.GetRequiredService<RsfWatcher>();
 
             app.Start();
         }
