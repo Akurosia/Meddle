@@ -47,11 +47,11 @@ public static class SkeletonUtils
                     continue;
                 }
 
-                if (partial.ConnectedBoneIndex == i)
-                {
-                    throw new InvalidOperationException(
-                        $"Bone {name} on {i} is connected to a skeleton that should've already been declared");
-                }
+                // if (partial.ConnectedBoneIndex == i)
+                // {
+                //     throw new InvalidOperationException(
+                //         $"Bone {name} on {i} is connected to a skeleton that should've already been declared");
+                // }
 
                 var bone = new BoneNodeBuilder(name)
                 {

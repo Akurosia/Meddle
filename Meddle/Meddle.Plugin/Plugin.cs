@@ -13,7 +13,6 @@ namespace Meddle.Plugin;
 
 public sealed class Plugin : IDalamudPlugin
 {
-    public static readonly string DefaultExportDirectory = Path.Combine(Path.GetTempPath(), "Meddle.Export");
     private readonly IHost? app;
     private readonly ILogger pluginLog;
     public static ILogger<Plugin> Logger { get; private set; } = NullLogger<Plugin>.Instance;
@@ -40,8 +39,6 @@ public sealed class Plugin : IDalamudPlugin
             var config = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             pluginInterface.Inject(config);
             config.Migrate();
-            
-            Alloc.Init();
 
             var host = Host.CreateDefaultBuilder();
             host.ConfigureLogging(logging =>
@@ -88,6 +85,5 @@ public sealed class Plugin : IDalamudPlugin
         app?.WaitForShutdown();
         app?.Dispose();
         pluginLog.LogDebug("Plugin disposed");
-        Alloc.Dispose();
     }
 }

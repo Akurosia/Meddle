@@ -13,8 +13,8 @@ public class ParsedHkaPose
     public unsafe ParsedHkaPose(hkaPose* pose)
     {
         var localSpaceTransforms = new List<Transform>();
-        var hkLocalSpaceMatrices = new List<Matrix4x4>();
-        var hkModelSpaceMatrices = new List<Matrix4x4>();
+        // var hkLocalSpaceMatrices = new List<Matrix4x4>();
+        // var hkModelSpaceMatrices = new List<Matrix4x4>();
 
         var boneCount = pose->Skeleton->Bones.Length;
         
@@ -25,29 +25,29 @@ public class ParsedHkaPose
             {
                 throw new ArgumentException($"Failed to access bone {i}");
             }
-            hkLocalSpaceMatrices.Add(Alloc.GetMatrix(localSpace));
+            // hkLocalSpaceMatrices.Add(Alloc.GetMatrix(localSpace));
             localSpaceTransforms.Add(new Transform(*localSpace));
         }
-        for (var i = 0; i < boneCount; ++i)
-        {
-            var modelSpace = pose->AccessBoneModelSpace(i, hkaPose.PropagateOrNot.DontPropagate);
-            if (modelSpace == null)
-            {
-                throw new ArgumentException($"Failed to access model bone {i}");
-            }
-            hkModelSpaceMatrices.Add(Alloc.GetMatrix(modelSpace));
-        }
+        // for (var i = 0; i < boneCount; ++i)
+        // {
+        //     var modelSpace = pose->AccessBoneModelSpace(i, hkaPose.PropagateOrNot.DontPropagate);
+        //     if (modelSpace == null)
+        //     {
+        //         throw new ArgumentException($"Failed to access model bone {i}");
+        //     }
+        //     hkModelSpaceMatrices.Add(Alloc.GetMatrix(modelSpace));
+        // }
 
         Pose = localSpaceTransforms;
-        HkLocalSpaceMatrices = hkLocalSpaceMatrices;
-        HkModelSpaceMatrices = hkModelSpaceMatrices;
+        // HkLocalSpaceMatrices = hkLocalSpaceMatrices;
+        // HkModelSpaceMatrices = hkModelSpaceMatrices;
     }
 
     public IReadOnlyList<Transform> Pose { get; }
 
-    [JsonIgnore]
-    public IReadOnlyList<Matrix4x4> HkLocalSpaceMatrices { get; }
-    
-    [JsonIgnore]
-    public IReadOnlyList<Matrix4x4> HkModelSpaceMatrices { get; }
+    // [JsonIgnore]
+    // public IReadOnlyList<Matrix4x4> HkLocalSpaceMatrices { get; }
+    //
+    // [JsonIgnore]
+    // public IReadOnlyList<Matrix4x4> HkModelSpaceMatrices { get; }
 }

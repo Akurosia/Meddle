@@ -14,12 +14,23 @@ namespace Meddle.Plugin;
 public partial class Configuration : IPluginConfiguration
 {
     public const ExportType DefaultExportType = ExportType.GLTF;
+    public static string DefaultExportDirectory => GetDefaultExportDirectory();
+    private static string GetDefaultExportDirectory()
+    {
+        var documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (string.IsNullOrWhiteSpace(documentsFolder))
+        {
+            return OldDefaultExportDirectory;
+        }
+
+        return Path.Combine(documentsFolder, "Meddle");
+    }
     
     [PluginService]
     [JsonIgnore]
     private IDalamudPluginInterface PluginInterface { get; set; } = null!;
 
-    public int Version { get; set; } = 4;
+    public int Version { get; set; } = 5;
     
     public bool OpenDebugMenuOnLoad { get; set; }
     public LogLevel MinimumNotificationLogLevel { get; set; } = LogLevel.Warning;
@@ -28,7 +39,7 @@ public partial class Configuration : IPluginConfiguration
     public bool DisableAutomaticUiHide { get; set; }
     public bool DisableCutsceneUiHide { get; set; } = true;
     public bool DisableGposeUiHide { get; set; } = true;
-    public string ExportDirectory { get; set; } = Plugin.DefaultExportDirectory;
+    public string ExportDirectory { get; set; } = DefaultExportDirectory;
     public string SecretConfig { get; set; } = string.Empty;
     public bool DisplayDebugInfo { get; set; }
     public bool OpenFolderOnExport { get; set; } = true;
