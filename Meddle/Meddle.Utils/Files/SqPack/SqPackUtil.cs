@@ -6,6 +6,8 @@ namespace Meddle.Utils.Files.SqPack;
 
 public static class SqPackUtil
 {
+    public static Dictionary<ulong, byte[]> RsfData = [];
+    
     public static SqPackFile? ReadFile(long offset, string datFilePath, FileType? type = null)
     {
         using var fileStream = File.OpenRead(datFilePath);
@@ -22,7 +24,7 @@ public static class SqPackUtil
 
             var data = header.Type switch
             {
-                FileType.Empty => new byte[header.RawFileSize],
+                FileType.Empty => ParseEmptyFile(offset, header, br),
                 FileType.Texture => ParseTexFile(offset, header, br),
                 FileType.Standard => ParseStandardFile(offset, header, br),
                 FileType.Model => ParseModelFile(offset, header, br),
@@ -37,6 +39,13 @@ public static class SqPackUtil
             br.Close();
             fileStream.Close();
         }
+    }
+
+    public static unsafe ReadOnlySpan<byte> ParseEmptyFile(long offset, SqPackFileInfo header, BinaryReader br)
+    {
+        br.BaseStream.Seek(offset + header.Size, SeekOrigin.Begin);
+        var data = br.ReadBytes((int)header.AdditionalData[2]);
+        return data;
     }
 
     public static ReadOnlySpan<byte> ParseStandardFile(long offset, SqPackFileInfo header, BinaryReader br)
@@ -80,7 +89,7 @@ public static class SqPackUtil
             
             // keep note of the end of the header since all blocks are relative to this
             var blockOrigin = offset + modelBlock.Size;
-                        var stackChunk = new ChunkInfo
+            var stackChunk = new ChunkInfo
             {
                 Size = modelBlock.StackSize,
                 Length = modelBlock.CompressedStackMemorySize,

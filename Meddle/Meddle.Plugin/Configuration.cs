@@ -14,12 +14,23 @@ namespace Meddle.Plugin;
 public partial class Configuration : IPluginConfiguration
 {
     public const ExportType DefaultExportType = ExportType.GLTF;
+    public static string DefaultExportDirectory => GetDefaultExportDirectory();
+    private static string GetDefaultExportDirectory()
+    {
+        var documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (string.IsNullOrWhiteSpace(documentsFolder))
+        {
+            return OldDefaultExportDirectory;
+        }
+
+        return Path.Combine(documentsFolder, "AkuMeddle");
+    }
     
     [PluginService]
     [JsonIgnore]
     private IDalamudPluginInterface PluginInterface { get; set; } = null!;
 
-    public int Version { get; set; } = 4;
+    public int Version { get; set; } = 5;
     
     public bool OpenDebugMenuOnLoad { get; set; }
     public LogLevel MinimumNotificationLogLevel { get; set; } = LogLevel.Warning;
@@ -28,7 +39,7 @@ public partial class Configuration : IPluginConfiguration
     public bool DisableAutomaticUiHide { get; set; }
     public bool DisableCutsceneUiHide { get; set; } = true;
     public bool DisableGposeUiHide { get; set; } = true;
-    public string ExportDirectory { get; set; } = Plugin.DefaultExportDirectory;
+    public string ExportDirectory { get; set; } = DefaultExportDirectory;
     public string SecretConfig { get; set; } = string.Empty;
     public bool DisplayDebugInfo { get; set; }
     public bool OpenFolderOnExport { get; set; } = true;
@@ -63,6 +74,41 @@ public partial class Configuration : IPluginConfiguration
         public string Name { get; set; } = string.Empty;
         public string[] ModelPaths { get; set; } = [];
         public DateTime ExportedAtUtc { get; set; } = DateTime.UtcNow;
+    }
+
+    public RsfConfiguration RsfConfig { get; set; } = new();
+
+    public class RsfConfiguration
+    {
+        public Dictionary<ulong, string> RsfCache = new();
+        
+        public bool SetRsfValue(ulong key, byte[] value)
+        {
+            var stringValue = BitConverter.ToString(value).Replace("-", " ");
+            if (!RsfCache.TryGetValue(key, out var existingValue) || 
+                existingValue != stringValue)
+            {
+                RsfCache[key] = stringValue;
+                return true;
+            }
+
+            return false;
+        }
+        
+        public Dictionary<ulong, byte[]> GetRsfData()
+        {
+            var outDict = new Dictionary<ulong, byte[]>();
+            foreach (var (key, valueString) in RsfCache)
+            {
+                var rsfBytes = valueString.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(b => Convert.ToByte(b, 16)).ToArray();
+                var valueDataBuffer = new byte[64];
+                rsfBytes.CopyTo(valueDataBuffer);
+                
+                outDict[key] = valueDataBuffer;
+            }
+
+            return outDict;
+        }
     }
     
     public class ExportConfiguration
@@ -158,3 +204,4 @@ public partial class Configuration : IPluginConfiguration
         OnConfigurationSaved?.Invoke();
     }
 }
+

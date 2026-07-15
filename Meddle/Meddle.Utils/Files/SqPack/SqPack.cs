@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Meddle.Utils.Files.SqPack;
 
@@ -6,6 +7,7 @@ public class SqPack : IDisposable
 {
     private static uint[]? CrcTable;
     public IReadOnlyList<Repository> Repositories { get; private set; }
+    public Dictionary<ulong, byte[]> RsfData = [];
 
     public SqPack(string path)
     {
@@ -75,8 +77,29 @@ public class SqPack : IDisposable
         return false;
     }
 
-    public (Category category, IndexHashTableEntry hash, SqPackFile file)? GetFile(
-        string path, FileType? fileType = null)
+    public SqPackFileDescriptor? GetFileByHash(ulong hash)
+    {
+        foreach (var repo in Repositories)
+        {
+            var catMatch = repo.Categories.ToArray();
+
+            foreach (var (key, category) in catMatch)
+            {
+                if (category.TryGetFile(hash, out var data))
+                {
+                    var descriptor = new SqPackFileDescriptor(repo, category, hash, data, null);
+                    ResolveDescriptor(descriptor);
+                    return descriptor;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public record SqPackFileDescriptor(Repository Repository, Category Category, ulong Hash, SqPackFile File, string? Path);
+    
+    public SqPackFileDescriptor? GetFile(string path, FileType? fileType = null)
     {
         var hash = GetFileHash(path);
 
@@ -105,12 +128,15 @@ public class SqPack : IDisposable
             {
                 if (category.TryGetFile(hash.IndexHash, fileType, out var data))
                 {
-                    return (category, category.UnifiedIndexEntries[hash.IndexHash], data);
+                    var descriptor = new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.IndexHash].Hash, data, path);
+                    ResolveDescriptor(descriptor);
+                    return descriptor;
                 }
 
                 if (category.TryGetFile(hash.Index2Hash, fileType, out var data2))
                 {
-                    return (category, category.UnifiedIndexEntries[hash.Index2Hash], data2);
+                    var descriptor = new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.Index2Hash].Hash, data, path);                    ResolveDescriptor(descriptor);
+                    return descriptor;
                 }
             }
         }
@@ -118,12 +144,27 @@ public class SqPack : IDisposable
         return null;
     }
 
-    public (Repository repo, Category category, IndexHashTableEntry hash, SqPackFile file)[] GetFiles(string path)
+    public void ResolveDescriptor(SqPackFileDescriptor descriptor)
+    {
+        if (descriptor.File.FileHeader.Type == FileType.Empty)
+        {
+            if (RsfData.TryGetValue(descriptor.Hash, out var fileKey))
+            {
+                descriptor.File.ResolveData(fileKey);
+            }
+            else
+            {
+                Global.Logger.LogWarning("Retrieved Empty type file ({path}) but no Rsf data found for its hash {hash}", descriptor.Path ?? "??", descriptor.Hash);
+            }
+        }
+    }
+
+    public SqPackFileDescriptor[] GetFiles(string path)
     {
         var hash = GetFileHash(path);
         var categoryName = path.Split('/')[0];
 
-        var files = new List<(Repository repo, Category category, IndexHashTableEntry hash, SqPackFile file)>();
+        var files = new List<SqPackFileDescriptor>();
         byte? catId = null;
         if (Category.CategoryNameToIdMap.TryGetValue(categoryName, out var id))
         {
@@ -147,14 +188,19 @@ public class SqPack : IDisposable
             {
                 if (category.TryGetFile(hash.IndexHash, out var data))
                 {
-                    files.Add((repo, category, category.UnifiedIndexEntries[hash.IndexHash], data));
+                    files.Add(new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.IndexHash].Hash, data, path));
                 }
 
                 if (category.TryGetFile(hash.Index2Hash, out var data2))
                 {
-                    files.Add((repo, category, category.UnifiedIndexEntries[hash.Index2Hash], data2));
+                    files.Add(new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.Index2Hash].Hash, data2, path));
                 }
             }
+        }
+
+        foreach (var fileDescriptor in files)
+        {
+            ResolveDescriptor(fileDescriptor);
         }
 
         return files.ToArray();

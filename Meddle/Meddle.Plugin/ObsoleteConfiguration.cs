@@ -8,6 +8,8 @@ namespace Meddle.Plugin;
 
 public partial class Configuration
 {
+    public static readonly string OldDefaultExportDirectory = Path.Combine(Path.GetTempPath(), "Meddle.Export");
+    
     [Obsolete("Use LayoutConfig.WorldCutoffDistance instead")]
     public float WorldCutoffDistance { get; set; } = 100;
     
@@ -69,6 +71,17 @@ public partial class Configuration
             LayoutConfig.DrawTypes |= ParsedInstanceType.Decal | ParsedInstanceType.EnvLighting;
             
             Version = 4;
+            Save();
+        }
+
+        if (Version == 4)
+        {
+            Plugin.Logger.LogInformation("Migrating configuration from version 4 to 5");
+            if (ExportDirectory == OldDefaultExportDirectory)
+            {
+                ExportDirectory = DefaultExportDirectory;
+            }
+            Version = 5;
             Save();
         }
 #pragma warning restore CS0618 // Type or member is obsolete

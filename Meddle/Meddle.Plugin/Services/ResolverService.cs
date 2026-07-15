@@ -98,15 +98,15 @@ public class ResolverService : IService
     {
         var path = terrainInstance.Path;
         var teraPath = $"{terrainInstance.Path.GamePath}/bgplate/terrain.tera";
-        var teraResource = pack.GetFile(teraPath);
+        var teraData = pack.GetFileOrReadFromDisk(teraPath);
         
-        if (teraResource == null)
+        if (teraData == null)
         {
             logger.LogWarning("Failed to load terrain.tera for {Path}", path);
             return;
         }
         
-        var terrain = new TeraFile(teraResource.Value.file.RawData);
+        var terrain = new TeraFile(teraData);
         terrainInstance.Data = new ParsedTerrainInstanceData(terrain);
     }
     
@@ -136,14 +136,13 @@ public class ResolverService : IService
     /// </summary>
     public ParsedModelInfo? ParseModelFromPath(string path)
     {
-        var modelResource = pack.GetFile(path);
-        if (modelResource == null)
+        var modelData = pack.GetFileOrReadFromDisk(path);
+        if (modelData == null)
         {
             logger.LogWarning("Failed to load model file: {Path}", path);
             return null;
         }
 
-        var modelData = modelResource.Value.file.RawData;
         var mdlFile = new MdlFile(modelData);
         var materials = new List<ParsedMaterialInfo>();
         var mtrlNames = mdlFile.GetMaterialNames().Select(x => x.Value)
@@ -152,14 +151,13 @@ public class ResolverService : IService
         {
             var resolvedMtrlPath = ResolveRelatedGamePath(path, mtrlName, "material");
             
-            var mtrlResource = pack.GetFile(resolvedMtrlPath);
-            if (mtrlResource == null)
+            var mtrlData = pack.GetFileOrReadFromDisk(resolvedMtrlPath);
+            if (mtrlData == null)
             {
                 logger.LogWarning("Failed to load material file: {Path}", resolvedMtrlPath);
                 continue;
             }
             
-            var mtrlData = mtrlResource.Value.file.RawData;
             var mtrlFile = new MtrlFile(mtrlData);
             var shaderName = mtrlFile.GetShaderPackageName();
             var colorTable = mtrlFile.GetColorTable();
@@ -170,21 +168,20 @@ public class ResolverService : IService
             for (var texIdx = 0; texIdx < textureNames.Length; texIdx++)
             {
                 var texName = ResolveRelatedGamePath(resolvedMtrlPath, textureNames[texIdx], "texture");
-                var texResource = pack.GetFile(texName);
-                if (texResource == null)
+                var texData = pack.GetFileOrReadFromDisk(texName);
+                if (texData == null)
                 {
                     logger.LogWarning("Failed to load texture file: {Path}", texName);
                     continue;
                 }
                 
-                var texData = texResource.Value.file.RawData;
                 var texFile = new TexFile(texData);
                 var texRes = texFile.ToResource();
                 var texInfo = new ParsedTextureInfo(texName, texName, texRes);
                 textures.Add(texInfo);
             }
 
-            var materialInfo = new ParsedMaterialInfo(resolvedMtrlPath, mtrlName, shaderName, null, colorTable, textures.ToArray());
+            var materialInfo = new ParsedMaterialInfo(resolvedMtrlPath, resolvedMtrlPath, shaderName, null, colorTable, textures.ToArray());
             
             materials.Add(materialInfo);
         }
