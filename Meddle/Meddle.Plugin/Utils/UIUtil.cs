@@ -218,6 +218,32 @@ public static class UiUtil
             
             HintCircle("If enabled, the export will only include terrain within the specified distance from the player.\n" +
                        "This is useful for reducing the size of the export, but may result in missing terrain in some areas.");
+
+            var includeGrass = exportConfiguration.IncludeGrass;
+            if (ImGui.Checkbox("Include grass models", ref includeGrass))
+            {
+                exportConfiguration.IncludeGrass = includeGrass;
+                changed = true;
+            }
+
+            ImGui.SameLine();
+
+            HintCircle("If enabled, the export will include the model props placed by the grass system\n" +
+                       "(shrubs, ground plants, etc. from the zone's grass_zone_data.gzd).\n" +
+                       "Respects the terrain range limit if set.");
+
+            var includeGrassBlades = exportConfiguration.IncludeGrassBlades;
+            if (ImGui.Checkbox("Include grass blades (points)", ref includeGrassBlades))
+            {
+                exportConfiguration.IncludeGrassBlades = includeGrassBlades;
+                changed = true;
+            }
+
+            ImGui.SameLine();
+
+            HintCircle("If enabled, the export will include grass blade instances as a point-cloud.\n" +
+                       "(with rotation/scale/type/color as vertex attributes on each point).\n" +
+                       "Respects the terrain range limit if set.");
         }
 
         // var rootAttachHandling = exportConfiguration.RootAttachHandling;

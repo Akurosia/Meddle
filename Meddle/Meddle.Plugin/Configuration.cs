@@ -108,6 +108,8 @@ public partial class Configuration : IPluginConfiguration
         
         public bool LimitTerrainExportRange { get; set; }
         public float TerrainExportDistance { get; set; } = 500f;
+        public bool IncludeGrass { get; set; }
+        public bool IncludeGrassBlades { get; set; }
         public bool EnableWindingFlip { get; set; }
 
         // public enum ExportRootAttachHandling
@@ -134,6 +136,8 @@ public partial class Configuration : IPluginConfiguration
                 UseDeformer = UseDeformer,
                 LimitTerrainExportRange = LimitTerrainExportRange,
                 TerrainExportDistance = TerrainExportDistance,
+                IncludeGrass = IncludeGrass,
+                IncludeGrassBlades = IncludeGrassBlades,
                 EnableWindingFlip = EnableWindingFlip
             };
         }
@@ -160,6 +164,8 @@ public partial class Configuration : IPluginConfiguration
             UseDeformer = other.UseDeformer;
             LimitTerrainExportRange = other.LimitTerrainExportRange;
             TerrainExportDistance = other.TerrainExportDistance;
+            IncludeGrass = other.IncludeGrass;
+            IncludeGrassBlades = other.IncludeGrassBlades;
             EnableWindingFlip = other.EnableWindingFlip;
         }
         

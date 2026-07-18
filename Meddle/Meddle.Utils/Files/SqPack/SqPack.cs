@@ -111,6 +111,7 @@ public class SqPack : IDisposable
             catId = id;
         }
 
+        var candidates = new List<(Repository repo, Category category)>();
         foreach (var repo in Repositories)
         {
             var catMatch = repo.Categories.ToArray();
@@ -119,25 +120,29 @@ public class SqPack : IDisposable
                 catMatch = catMatch.Where(x => x.Key.category == catId.Value).ToArray();
             }
 
-            if (catMatch.Length == 0)
-            {
-                continue;
-            }
-
             foreach (var (key, category) in catMatch)
             {
-                if (category.TryGetFile(hash.IndexHash, fileType, out var data))
-                {
-                    var descriptor = new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.IndexHash].Hash, data, path);
-                    ResolveDescriptor(descriptor);
-                    return descriptor;
-                }
+                candidates.Add((repo, category));
+            }
+        }
+        
+        foreach (var (repo, category) in candidates)
+        {
+            if (category.TryGetFile(hash.IndexHash, fileType, out var data))
+            {
+                var descriptor = new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.IndexHash].Hash, data, path);
+                ResolveDescriptor(descriptor);
+                return descriptor;
+            }
+        }
 
-                if (category.TryGetFile(hash.Index2Hash, fileType, out var data2))
-                {
-                    var descriptor = new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.Index2Hash].Hash, data, path);                    ResolveDescriptor(descriptor);
-                    return descriptor;
-                }
+        foreach (var (repo, category) in candidates)
+        {
+            if (category.TryGetFile(hash.Index2Hash, fileType, out var data2))
+            {
+                var descriptor = new SqPackFileDescriptor(repo, category, category.UnifiedIndexEntries[hash.Index2Hash].Hash, data2, path);
+                ResolveDescriptor(descriptor);
+                return descriptor;
             }
         }
 
@@ -154,7 +159,8 @@ public class SqPack : IDisposable
             }
             else
             {
-                Global.Logger.LogWarning("Retrieved Empty type file ({path}) but no Rsf data found for its hash {hash}", descriptor.Path ?? "??", descriptor.Hash);
+                throw new Exception($"Retrieved Empty type file ({descriptor.Path ?? "??"}) but no Rsf data found for its hash {descriptor.Hash}");
+                //Global.Logger.LogWarning("Retrieved Empty type file ({path}) but no Rsf data found for its hash {hash}", descriptor.Path ?? "??", descriptor.Hash);
             }
         }
     }

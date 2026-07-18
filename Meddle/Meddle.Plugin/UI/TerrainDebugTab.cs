@@ -1,10 +1,14 @@
 ﻿using Dalamud.Interface.Utility.Raii;
 using Dalamud.Bindings.ImGui;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.UI.Windows;
 using Meddle.Plugin.Utils;
+using Meddle.Utils.Files;
+using Meddle.Utils.Files.SqPack;
+using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI;
 
@@ -12,11 +16,14 @@ public class TerrainDebugTab : ITab
 {
     private readonly SigUtil sigUtil;
     private readonly MdlMaterialWindowManager mdlMaterialWindowManager;
+    private readonly SqPack pack;
+    private Dictionary<string, object?> fileCache = new Dictionary<string, object>();
     public TerrainDebugTab(SigUtil sigUtil, 
-                           MdlMaterialWindowManager mdlMaterialWindowManager)
+                           MdlMaterialWindowManager mdlMaterialWindowManager, SqPack pack)
     {
         this.sigUtil = sigUtil;
         this.mdlMaterialWindowManager = mdlMaterialWindowManager;
+        this.pack = pack;
     }
     
     
@@ -25,6 +32,9 @@ public class TerrainDebugTab : ITab
     public MenuType MenuType => MenuType.Debug;
     public unsafe void Draw()
     {
+        var renderManager = Manager.Instance();
+        UiUtil.Text($"Render Manager: {(nint)renderManager:x8}", $"{(nint)renderManager:x8}");
+        
         var world = sigUtil.GetLayoutWorld();
         if (world == null || world->ActiveLayout == null) return;
         foreach (var terrain in world->ActiveLayout->Terrains)
@@ -35,9 +45,89 @@ public class TerrainDebugTab : ITab
             UiUtil.Text($"GfxTerrain: {(nint)terrainPtr->GfxTerrain:X8}", $"{(nint)terrainPtr->GfxTerrain:X8}");
             if (terrainPtr->GfxTerrain == null) continue;
 
-            using var tree = ImRaii.TreeNode($"Terrain Resource Handle: {(nint)terrainPtr->GfxTerrain->ResourceHandle:X8}");
+            var terrainFileName = terrainPtr->GfxTerrain->ResourceHandle->FileName.ToString();
+            var grassRoot = $"{terrainFileName.Split("/bgplate/")[0]}/grass";
+            var grassPath = $"{grassRoot}/grass_zone_data.gzd";
+            using var tree = ImRaii.TreeNode($"Terrain Resource Handle: {(nint)terrainPtr->GfxTerrain->ResourceHandle:X8} {terrainFileName} {grassPath}");
             if (tree)
             {
+                UiUtil.Text($"{terrainFileName}", terrainFileName);
+                UiUtil.Text($"{grassPath}", grassPath);
+                if (!fileCache.TryGetValue(grassPath, out var gzdFileObj))
+                {
+                    var grassData = pack.GetFileOrReadFromDisk(grassPath);
+                    if (grassData == null)
+                    {
+                        gzdFileObj = null;
+                    }
+                    else
+                    {
+                        gzdFileObj = new GzdFile(grassData);
+                    }
+                    
+                    fileCache[grassPath] = gzdFileObj;
+                }
+
+                if (gzdFileObj is GzdFile gzdFile)
+                {
+                    for (int i = 0; i < gzdFile.CellsH.Length; i++)
+                    {
+                        var cell = gzdFile.CellsH[i];
+                        using var cellTree =
+                            ImRaii.TreeNode($"Cell{i}: {cell.GgdName}, Radius: {cell.Radius}, Center:{cell.Center}");
+                        if (cellTree)
+                        {
+                            var cellFileName = $"{grassRoot}/{cell.GgdName}";
+                            if (!fileCache.TryGetValue(cellFileName, out var ggdFileObj))
+                            {
+                                var ggdFileData = pack.GetFileOrReadFromDisk(cellFileName);
+                                if (ggdFileData == null)
+                                {
+                                    ggdFileObj = null;
+                                }
+                                else
+                                {
+                                    ggdFileObj = new GgdFile(ggdFileData);
+                                }
+                                
+                                fileCache[cellFileName] = ggdFileObj;
+                            }
+
+                            if (ggdFileObj is GgdFile ggdFile)
+                            {
+                                for (var recordIdx = 0; recordIdx < ggdFile.Records.Length; recordIdx++)
+                                {
+                                    var ggdRecord = ggdFile.Records[recordIdx];
+                                    ImGui.Text($"Record {recordIdx}");
+                                    var modelCounts = new Dictionary<string, int>();
+                                    for (var modelPathIdx = 0; modelPathIdx < gzdFile.ModelPaths.Length; modelPathIdx++)
+                                    {
+                                        var modelPath = gzdFile.ModelPaths[modelPathIdx];
+                                        var modelCount = ggdRecord.Header.ModelCounts[i];
+                                        modelCounts[modelPath] = modelCount;
+                                    }
+
+                                    foreach (var modelCount in modelCounts.OrderByDescending(x => x.Value))
+                                    {
+                                        ImGui.Text($"{modelCount.Key}: {modelCount.Value}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for (int i = 0; i < gzdFile.ModelPaths.Length; i++)
+                    {
+                        var path = gzdFile.ModelPaths[i];
+                        UiUtil.Text($"ModelPath{i}: {path}", path);
+                    }
+                    for (int i = 0; i < gzdFile.TextureSuffixes.Length; i++)
+                    {
+                        var textureSuffix = gzdFile.TextureSuffixes[i];
+                        ImGui.Text($"TextureSuffix{i}: {textureSuffix}");
+                    }
+                }
+                
+                
                 var terrainStruct = (Terrain*)terrainPtr->GfxTerrain;
                 var terrainModels = terrainStruct->ModelResourceHandlesSpan;
                 for (var i = 0; i < terrainStruct->ModelResourceHandleCount; i++)
