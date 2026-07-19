@@ -231,6 +231,17 @@ public class UpdateWindow : Window
                 new TextUpdateLine(" + Fixes for housing items not being dyed correctly."),
                 new TextUpdateLine(" + Removed validationg for when a partial skeletons ConnectedBoneIndex matched its own index, which caused issues exporting some skeletons")
             ]
+        },
+        new()
+        {
+            Tag = "Grass",
+            Date = "2026-07-19",
+            Changes =
+            [
+                new WarningUpdateLine(" ! NOTE: Update the MeddleTools blender addon to support import of grass blades."),
+                new TextUpdateLine(" + Updated to support exporting grass models (shrubs, bushes etc.)"),
+                new TextUpdateLine(" + Updated to support exporting grass blades as a point cloud"),
+            ]
         }
     ];
     
