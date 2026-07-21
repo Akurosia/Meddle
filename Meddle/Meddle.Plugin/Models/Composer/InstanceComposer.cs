@@ -648,14 +648,14 @@ public class InstanceComposer
 
         if (exportConfig.IncludeGrass || exportConfig.IncludeGrassBlades)
         {
-            ComposeGrass(terrainInstance, scene, rootProgress);
+            ComposeGrass(terrainInstance, rootProgress);
         }
 
         root.SetLocalTransform(terrainInstance.Transform.AffineTransform, true);
         return root;
     }
-    
-    private void ComposeGrass(ParsedTerrainInstance terrainInstance, SceneBuilder scene, ExportProgress rootProgress)
+
+    private void ComposeGrass(ParsedTerrainInstance terrainInstance, ExportProgress rootProgress)
     {
         var grassDir = $"{terrainInstance.Path.GamePath}/grass";
         var gzdData = pack.GetFileOrReadFromDisk($"{grassDir}/grass_zone_data.gzd");
@@ -682,6 +682,8 @@ public class InstanceComposer
         var modelCount = 0;
         var bladeCount = 0;
 
+        var modelScene = composeModels ? new SceneBuilder() : null;
+        var bladeScene = composeBlades ? new SceneBuilder() : null;
         var bladeMaterial = new MaterialBuilder("grass_blades");
         var bladeMeshes = new MeshBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>?[3];
 
@@ -738,17 +740,32 @@ public class InstanceComposer
 
                 if (composeModels)
                 {
-                    ComposeGrassModelInstances(gzd, ggd, record, cell, recordIdx, streamIdx, scene, slotMeshCache, ref modelCount);
+                    ComposeGrassModelInstances(gzd, ggd, record, cell, recordIdx, streamIdx, modelScene!, slotMeshCache, ref modelCount);
                 }
             }
 
             grassProgress.IncrementProgress();
         }
 
-        AddGrassBladeNodes(gzd, grassDir, bladeMeshes, scene);
+        if (composeBlades)
+        {
+            AddGrassBladeNodes(gzd, grassDir, bladeMeshes, bladeScene!);
+        }
 
         grassProgress.IsComplete = true;
         if (modelCount == 0 && bladeCount == 0) return;
+
+        var baseName = terrainInstance.Path.GamePath;
+        if (modelScene != null && modelCount > 0)
+        {
+            SaveScene(modelScene, $"{baseName}_grass_models");
+        }
+
+        if (bladeScene != null && bladeCount > 0)
+        {
+            SaveScene(bladeScene, $"{baseName}_grass_blades");
+        }
+
         Plugin.Logger.LogInformation("Composed {ModelCount} grass model instances and {BladeCount} blade points from {GrassDir}",
                                      modelCount, bladeCount, grassDir);
     }
