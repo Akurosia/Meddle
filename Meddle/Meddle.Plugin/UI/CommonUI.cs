@@ -191,7 +191,8 @@ public class CommonUi : IDisposable, IService
         if (drawObject->Object.GetObjectType() != ObjectType.CharacterBase)
             return $"Invalid Character{suffix}";
 
-        var modelType = ((CharacterBase*)drawObject)->GetModelType();
+        var characterBase = (CharacterBase*)drawObject;
+        var modelType = characterBase->GetModelType();
 
         var name = obj.Name.TextValue;
         if (obj.ObjectKind == ObjectKind.Pc && !string.IsNullOrWhiteSpace(config.PlayerNameOverride))
@@ -200,8 +201,10 @@ public class CommonUi : IDisposable, IService
         }
         
         string prefix = config.DisplayDebugInfo 
-            ? $"[{obj.Address:X8}:{obj.GameObjectId:X}]" 
+            ? $"[{obj.Address:X8}:{(nint)characterBase:X8}:{obj.GameObjectId:X}]" 
             : string.Empty;
+        
+        
         string distanceText = includeDistance
             ? $" - {objectTable.GetDistanceToLocalPlayer(obj).Length():0}y"
             : string.Empty;

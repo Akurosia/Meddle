@@ -1,9 +1,11 @@
-﻿using Dalamud.Plugin.Services;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Interop;
+using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Layout;
+using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Files;
 using Meddle.Utils.Files.SqPack;
@@ -19,19 +21,22 @@ public class ResolverService : IService
     private readonly SqPack pack;
     private readonly IFramework framework;
     private readonly PbdHooks pbdHooks;
+    private readonly SigUtil sigUtil;
 
     public ResolverService(
-        ILogger<ResolverService> logger, 
+        ILogger<ResolverService> logger,
         LayoutService layoutService,
         SqPack pack,
         IFramework framework,
-        PbdHooks pbdHooks)
+        PbdHooks pbdHooks,
+        SigUtil sigUtil)
     {
         this.logger = logger;
         this.layoutService = layoutService;
         this.pack = pack;
         this.framework = framework;
         this.pbdHooks = pbdHooks;
+        this.sigUtil = sigUtil;
     }
     
     
@@ -78,7 +83,7 @@ public class ResolverService : IService
                 var gameObject = (GameObject*)characterInstance.Id;
                 if (IsCharacterKind(gameObject->ObjectKind))
                 {
-                    var characterInfo = ParseCharacter((Character*)gameObject);
+                    var characterInfo = ParseCharacter((Character*)gameObject, true);
                     characterInstance.CharacterInfo = characterInfo;
                 }
                 else
@@ -195,7 +200,7 @@ public class ResolverService : IService
         return ParseMaterialUtil.ParseDrawObject(drawObject, pbdHooks);
     }
     
-    public unsafe ParsedCharacterInfo? ParseCharacter(Character* character)
+    public unsafe ParsedCharacterInfo? ParseCharacter(Character* character, bool includedLinkedAttaches = false)
     {
         if (character == null)
         {
@@ -236,8 +241,32 @@ public class ResolverService : IService
             }
         }
 
+        if (includedLinkedAttaches)
+        {
+            List<Pointer<CharacterBase>> linked = [];
+            try
+            {
+                linked = StructExtensions.GetLinkedAttaches(character, sigUtil);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to resolve Attach vtable, skipping linked attaches");
+            }
+
+            foreach (var childCBasePtr in linked)
+            {
+                var childCBase = childCBasePtr.Value;
+                if (childCBase == null)
+                    continue;
+
+                var linkedInfo = ParseMaterialUtil.ParseDrawObject((DrawObject*)childCBase, pbdHooks);
+                if (linkedInfo != null)
+                    attaches.Add(linkedInfo);
+            }
+        }
+
         characterInfo.Attaches = attaches.ToArray();
-        
+
         return characterInfo;
     }
 }

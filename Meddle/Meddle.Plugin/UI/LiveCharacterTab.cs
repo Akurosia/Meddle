@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
@@ -180,7 +180,7 @@ public unsafe class LiveCharacterTab : ITab
 
                 return info;
             }, character->NameString.GetCharacterName(config, character->ObjectKind));
-            
+
             ImGui.SameLine();
             UiUtil.HintCircle("Attaches are weapons, mounts, companions, parasols, etc. If you wish to export them separately, use the export buttons in their respective sections.");
         }
@@ -222,11 +222,55 @@ public unsafe class LiveCharacterTab : ITab
         {
             ImGui.Text($"Error: {ex.Message}");
         }
-        
+
+        if (depth == 0)
+        {
+            try
+            {
+                DrawLinkedAttaches(character, character->NameString.GetCharacterName(config, character->ObjectKind));  
+            }
+            catch (Exception ex)
+            {
+                ImGui.Text($"Error: {ex.Message}");
+            }
+        }
+
         sw.Stop();
-        if (config.DisplayDebugInfo)
+        if (config.DisplayDebugInfo && depth == 0)
         {
             ImGui.Text($"Character draw time: {sw.ElapsedMilliseconds} ms");
+        }
+    }
+    
+    private void DrawLinkedAttaches(CSCharacter* character, string name)
+    {
+        List<Pointer<CSCharacterBase>> linked;
+        try
+        {
+            linked = StructExtensions.GetLinkedAttaches(character, sigUtil);
+        }
+        catch (Exception ex)
+        {
+            ImGui.Text($"Failed to resolve Attach vtable: {ex.Message}");
+            return;
+        }
+
+        if (linked.Count == 0)
+        {
+            ImGui.TextDisabled("No additional linked attaches found outside Weapon/Mount/Ornament.");
+            return;
+        }
+
+        for (var linkedIdx = 0; linkedIdx < linked.Count; linkedIdx++)
+        {
+            var childCBase = linked[linkedIdx].Value;
+            if (childCBase == null)
+                continue;
+
+            using var linkedId = ImRaii.PushId($"LinkedAttach_{(nint)childCBase}");
+            ImGui.Separator();
+            ImGui.Text($"Linked Attach #{linkedIdx} (CharacterBase 0x{(nint)childCBase:X8})");
+            DrawDrawObject((DrawObject*)childCBase, $"{name}_LinkedAttach{linkedIdx}");
         }
     }
 
@@ -271,6 +315,11 @@ public unsafe class LiveCharacterTab : ITab
             if (characterInfo.Models.Count == 1)
             {
                 exportFlags |= UiUtil.ExportConfigDrawFlags.ShowUseDeformer;
+            }
+
+            if (characterInfo.Attaches.Count > 0)
+            {
+                exportFlags |= UiUtil.ExportConfigDrawFlags.ShowAttachOptions;
             }
 
             if (UiUtil.DrawExportConfig(exportConfig, exportFlags))

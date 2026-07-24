@@ -105,12 +105,13 @@ public partial class Configuration : IPluginConfiguration
         public bool ApplyVisibilityFlags { get; set; } = true;
         public bool SkipHiddenBgParts { get; set; }
         public bool UseDeformer { get; set; } = true;
-        
+
         public bool LimitTerrainExportRange { get; set; }
         public float TerrainExportDistance { get; set; } = 500f;
         public bool IncludeGrass { get; set; }
         public bool IncludeGrassBlades { get; set; }
         public bool EnableWindingFlip { get; set; }
+        public bool ExportAttachesAsSeparateObjects { get; set; }
 
         // public enum ExportRootAttachHandling
         // {
@@ -138,7 +139,8 @@ public partial class Configuration : IPluginConfiguration
                 TerrainExportDistance = TerrainExportDistance,
                 IncludeGrass = IncludeGrass,
                 IncludeGrassBlades = IncludeGrassBlades,
-                EnableWindingFlip = EnableWindingFlip
+                EnableWindingFlip = EnableWindingFlip,
+                ExportAttachesAsSeparateObjects = ExportAttachesAsSeparateObjects
             };
         }
 
@@ -167,6 +169,7 @@ public partial class Configuration : IPluginConfiguration
             IncludeGrass = other.IncludeGrass;
             IncludeGrassBlades = other.IncludeGrassBlades;
             EnableWindingFlip = other.EnableWindingFlip;
+            ExportAttachesAsSeparateObjects = other.ExportAttachesAsSeparateObjects;
         }
         
         public MeshBuilderOptions CreateMeshBuilderOptions()

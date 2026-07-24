@@ -91,6 +91,7 @@ public static class UiUtil
         ShowUseDeformer = 4,
         ShowSubmeshOptions = 8,
         ShowTerrainOptions = 16,
+        ShowAttachOptions = 32,
     }
 
     public static bool DrawExportConfig(Configuration.ExportConfiguration exportConfiguration, ExportConfigDrawFlags flags = ExportConfigDrawFlags.None)
@@ -244,6 +245,21 @@ public static class UiUtil
             HintCircle("If enabled, the export will include grass blade instances as a point-cloud.\n" +
                        "(with rotation/scale/type/color as vertex attributes on each point).\n" +
                        "Respects the terrain range limit if set.");
+        }
+
+        if (flags.HasFlag(ExportConfigDrawFlags.ShowAttachOptions))
+        {
+            var exportAttachesSeparately = exportConfiguration.ExportAttachesAsSeparateObjects;
+            if (ImGui.Checkbox("Export attaches as separate objects", ref exportAttachesSeparately))
+            {
+                exportConfiguration.ExportAttachesAsSeparateObjects = exportAttachesSeparately;
+                changed = true;
+            }
+
+            ImGui.SameLine();
+            HintCircle("If enabled, attaches (weapons, mounts, linked attaches, etc.) are exported as separate top-level " +
+                       "objects positioned at their correct world transform, instead of being parented under the actor's skeleton.\n" +
+                       "Disable this (default) to keep attaches skinned/parented to the actor as usual.");
         }
 
         // var rootAttachHandling = exportConfiguration.RootAttachHandling;

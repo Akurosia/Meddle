@@ -11,6 +11,7 @@ using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Materials;
 using SharpGLTF.Scenes;
+using SharpGLTF.Transforms;
 
 namespace Meddle.Plugin.Models.Composer;
 public class CharacterComposer
@@ -210,7 +211,32 @@ public class CharacterComposer
     private int attachSuffix;
     private readonly object attachLock = new();
 
-    private bool HandleAttach((ParsedCharacterInfo Owner, List<BoneNodeBuilder> OwnerBones, ParsedAttach Attach) attachData, SceneBuilder scene, BoneNodeBuilder rootBone, ref Matrix4x4 transform)
+    private static Matrix4x4 ToMatrix(AffineTransform t) =>
+        Matrix4x4.CreateScale(t.Scale) * Matrix4x4.CreateFromQuaternion(t.Rotation) * Matrix4x4.CreateTranslation(t.Translation);
+
+    private static Matrix4x4 ComputeOwnerWorldMatrix(BoneNodeBuilder? attachPointBone, ParsedSkeleton ownerSkeleton)
+    {
+        var world = Matrix4x4.Identity;
+        NodeBuilder? c = attachPointBone;
+        while (c != null)
+        {
+            if (c is BoneNodeBuilder { IsGenerated: false } boneNode &&
+                SkeletonUtils.GetBoneTransform(ownerSkeleton, boneNode) is { } poseTransform)
+            {
+                world *= ToMatrix(poseTransform);
+            }
+            else
+            {
+                world *= c.LocalMatrix;
+            }
+
+            c = c.Parent;
+        }
+
+        return world;
+    }
+
+    private bool HandleAttach(string rootName, (ParsedCharacterInfo Owner, List<BoneNodeBuilder> OwnerBones, ParsedAttach Attach) attachData, SceneBuilder scene, BoneNodeBuilder rootBone, ref Matrix4x4 transform)
     {
         bool rootParented;
         var attach = attachData.Attach;
@@ -218,10 +244,13 @@ public class CharacterComposer
         var attachName = attachData.Owner.Skeleton.PartialSkeletons[attach.PartialSkeletonIdx]
                                    .HkSkeleton!.BoneNames[(int)attach.BoneIdx];
         Plugin.Logger.LogInformation("Attaching {AttachName} to {RootBone}", attachName, rootBone.BoneName);
-        lock (attachLock)
+        if (!exportConfig.ExportAttachesAsSeparateObjects)
         {
-            Interlocked.Increment(ref attachSuffix);
-            rootBone.SetSuffixRecursively(attachSuffix);
+            lock (attachLock)
+            {
+                Interlocked.Increment(ref attachSuffix);
+                rootBone.SetSuffixRecursively(attachSuffix);
+            }
         }
 
         if (attach.OffsetTransform is { } ct)
@@ -239,7 +268,15 @@ public class CharacterComposer
 
         var attachPointBone = attachData.OwnerBones.FirstOrDefault(
                 x => x.BoneName.Equals(attachName, StringComparison.Ordinal));
-        if (attachPointBone == null)
+        if (exportConfig.ExportAttachesAsSeparateObjects)
+        {
+            var attachRoot = new NodeBuilder($"Attach-{rootName}-{attachName}");
+            attachRoot.LocalMatrix = ComputeOwnerWorldMatrix(attachPointBone, attachData.Owner.Skeleton);
+            scene.AddNode(attachRoot);
+            attachRoot.AddNode(rootBone);
+            rootParented = true;
+        }
+        else if (attachPointBone == null)
         {
             scene.AddNode(rootBone);
             rootParented = true;
@@ -256,7 +293,7 @@ public class CharacterComposer
             transform *= c.LocalMatrix;
             c = c.Parent;
         }
-        
+
         return rootParented;
     }
 
@@ -312,7 +349,15 @@ public class CharacterComposer
                     var attachPointBone =
                         rootAttachData.Value.bones.FirstOrDefault(
                             x => x.BoneName.Equals(attachName, StringComparison.Ordinal));
-                    if (attachPointBone == null)
+                    if (exportConfig.ExportAttachesAsSeparateObjects)
+                    {
+                        var mountedRoot = new NodeBuilder($"Attach-{attachName}");
+                        mountedRoot.LocalMatrix = ComputeOwnerWorldMatrix(attachPointBone, rootAttach.Skeleton);
+                        scene.AddNode(mountedRoot);
+                        mountedRoot.AddNode(rootBone);
+                        rootParented = true;
+                    }
+                    else if (attachPointBone == null)
                     {
                         scene.AddNode(rootBone);
                         rootParented = true;
@@ -379,7 +424,7 @@ public class CharacterComposer
         {
             try
             {
-                if (HandleAttach(attachData.Value, scene, rootBone, ref transform))
+                if (HandleAttach(root.Name, attachData.Value, scene, rootBone, ref transform))
                 {
                     rootParented = true;
                 }
@@ -412,7 +457,7 @@ public class CharacterComposer
         {
             root.AddNode(rootBone);
         }
-        
+
         foreach (var t in characterInfo.Models)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -420,10 +465,10 @@ public class CharacterComposer
                 Plugin.Logger.LogInformation("Export cancelled, stopping model processing");
                 break;
             }
-            
+
             try
             {
-                HandleModel(characterInfo, t, 
+                HandleModel(characterInfo, t,
                             scene,
                             new SkinningContext(bones, rootBone, transform));
             }

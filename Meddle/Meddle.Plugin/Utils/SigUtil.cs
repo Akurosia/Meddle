@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Dalamud.Game;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility.Signatures;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -27,6 +27,7 @@ public unsafe class SigUtil : IService, IDisposable
         this.sigScanner = sigScanner;
         this.logger = logger;
         this.gameInterop = gameInterop;
+        this.gameInterop.InitializeFromAttributes(this);
     }
     
     public World* GetWorld()
@@ -114,6 +115,20 @@ public unsafe class SigUtil : IService, IDisposable
         logger.LogDebug("Disposing SigUtil");
     }
     
+    [Signature(
+        "48 8D 05 ?? ?? ?? ?? 48 89 03 48 89 6B 58 48 89 6B 60 89 6B 68 48 89 6B 70",
+        ScanType = ScanType.StaticAddress,
+        Offset = 3)]
+    private readonly nint AttachVTable;
+
+    public nint GetAttachVTable()
+    {
+        if (AttachVTable == 0)
+            throw new Exception("AttachVTable was not resolved");
+
+        return AttachVTable;
+    }
+
     public void* TryGetStaticAddressFromSig(string sig, int offset)
     {
         if (sigScanner == null)
