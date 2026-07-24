@@ -50,7 +50,7 @@ public class MeshBuilder
         
         GeometryT = GetVertexGeometryType(Mesh.Vertices);
         MaterialT = GetVertexMaterialType(Mesh);
-        SkinningT = GetVertexSkinningType(Mesh.Vertices, boneMap != null);
+        SkinningT = GetVertexSkinningType(Mesh.Vertices, boneMap is {Count: > 0});
         VertexBuilderT = typeof(VertexBuilder<,,>).MakeGenericType(GeometryT, MaterialT, SkinningT);
         MeshBuilderT =
             typeof(MeshBuilder<,,,>).MakeGenericType(typeof(MaterialBuilder), GeometryT, MaterialT, SkinningT);
@@ -496,9 +496,9 @@ public class MeshBuilder
     private IVertexSkinning CreateSkinningParamCache(Vertex vertex, IReadOnlyList<BoneNodeBuilder>? boneMap, Type type, out List<(int, float)> skinningWeights)
     {
         skinningWeights = new List<(int, float)>();
-        if (type == typeof(VertexEmpty) || boneMap == null)
+        if (type == typeof(VertexEmpty) || boneMap is not {Count: > 0})
         {
-            return new VertexEmpty();
+            return new VertexEmpty();  
         }
         
         if (vertex.BlendIndices == null)
