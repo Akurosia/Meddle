@@ -385,15 +385,26 @@ public class InstanceComposer
         
         try
         {
-            characterComposer.Compose(instance.CharacterInfo, scene, root, characterProgress);
             var cTransform = instance.Transform.AffineTransform;
+
+            if (instance.CharacterInfo.Attach.ExecuteType != 0)
+            {
+                var rootAttachInfo = instance.CharacterInfo.Attaches.FirstOrDefault(x => x.Attach.ExecuteType == 0);
+                if (rootAttachInfo != null)
+                {
+                    cTransform = rootAttachInfo.Skeleton.Transform.AffineTransform;
+                }
+            }
+
             if (exportConfig.PoseMode != SkeletonUtils.PoseMode.None)
             {
                 // set scale to 1 since exporting with pose should already set this on the root bone.
                 cTransform = cTransform.WithScale(Vector3.One);
             }
+
+            characterComposer.Compose(instance.CharacterInfo, scene, root, characterProgress, cTransform.Matrix);
             root.SetLocalTransform(cTransform, true);
-        } 
+        }
         finally
         {
             characterProgress.IsComplete = true;
@@ -655,6 +666,19 @@ public class InstanceComposer
         return root;
     }
 
+    private sealed class GrassContext
+    {
+        public required GzdFile Gzd { get; init; }
+        public required string GrassDir { get; init; }
+        public SceneBuilder? ModelScene { get; init; }
+        public SceneBuilder? BladeScene { get; init; }
+        public MaterialBuilder BladeMaterial { get; } = new("grass_blades");
+        public MeshBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>?[] BladeMeshes { get; } = new MeshBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>?[3];
+        public Dictionary<int, IMeshBuilder<MaterialBuilder>[]?> SlotMeshCache { get; } = new();
+        public int ModelCount;
+        public int BladeCount;
+    }
+
     private void ComposeGrass(ParsedTerrainInstance terrainInstance, ExportProgress rootProgress)
     {
         var grassDir = $"{terrainInstance.Path.GamePath}/grass";
@@ -678,14 +702,13 @@ public class InstanceComposer
         var grassProgress = new ExportProgress(tiers.Sum(t => gzd.Cells[t].Length), "Grass Cells");
         rootProgress.Children.Add(grassProgress);
 
-        var slotMeshCache = new Dictionary<int, IMeshBuilder<MaterialBuilder>[]?>();
-        var modelCount = 0;
-        var bladeCount = 0;
-
-        var modelScene = composeModels ? new SceneBuilder() : null;
-        var bladeScene = composeBlades ? new SceneBuilder() : null;
-        var bladeMaterial = new MaterialBuilder("grass_blades");
-        var bladeMeshes = new MeshBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>?[3];
+        var ctx = new GrassContext
+        {
+            Gzd = gzd,
+            GrassDir = grassDir,
+            ModelScene = composeModels ? new SceneBuilder() : null,
+            BladeScene = composeBlades ? new SceneBuilder() : null,
+        };
 
         foreach (var (tier, cell) in tiers.SelectMany(t => gzd.Cells[t].Select(c => (t, c))))
         {
@@ -730,7 +753,7 @@ public class InstanceComposer
                 int streamIdx;
                 if (composeBlades)
                 {
-                    streamIdx = AppendGrassBladeInstances(ggd, record, tier, bladeMeshes, bladeMaterial, ref bladeCount);
+                    streamIdx = AppendGrassBladeInstances(ctx, ggd, record, tier);
                 }
                 else
                 {
@@ -740,7 +763,7 @@ public class InstanceComposer
 
                 if (composeModels)
                 {
-                    ComposeGrassModelInstances(gzd, ggd, record, cell, recordIdx, streamIdx, modelScene!, slotMeshCache, ref modelCount);
+                    ComposeGrassModelInstances(ctx, ggd, record, cell, recordIdx, streamIdx);
                 }
             }
 
@@ -749,35 +772,32 @@ public class InstanceComposer
 
         if (composeBlades)
         {
-            AddGrassBladeNodes(gzd, grassDir, bladeMeshes, bladeScene!);
+            AddGrassBladeNodes(ctx);
         }
 
         grassProgress.IsComplete = true;
-        if (modelCount == 0 && bladeCount == 0) return;
+        if (ctx.ModelCount == 0 && ctx.BladeCount == 0) return;
 
         var baseName = terrainInstance.Path.GamePath;
-        if (modelScene != null && modelCount > 0)
+        if (ctx.ModelScene != null && ctx.ModelCount > 0)
         {
-            SaveScene(modelScene, $"{baseName}_grass_models");
+            SaveScene(ctx.ModelScene, $"{baseName}_grass_models");
         }
 
-        if (bladeScene != null && bladeCount > 0)
+        if (ctx.BladeScene != null && ctx.BladeCount > 0)
         {
-            SaveScene(bladeScene, $"{baseName}_grass_blades");
+            SaveScene(ctx.BladeScene, $"{baseName}_grass_blades");
         }
 
         Plugin.Logger.LogInformation("Composed {ModelCount} grass model instances and {BladeCount} blade points from {GrassDir}",
-                                     modelCount, bladeCount, grassDir);
+                                     ctx.ModelCount, ctx.BladeCount, grassDir);
     }
 
-    private static int AppendGrassBladeInstances(
-        GgdFile ggd, GgdRecord record, int tier,
-        MeshBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>?[] bladeMeshes, MaterialBuilder bladeMaterial,
-        ref int bladeCount)
+    private static int AppendGrassBladeInstances(GrassContext ctx, GgdFile ggd, GgdRecord record, int tier)
     {
-        var mesh = bladeMeshes[tier] ??=
+        var mesh = ctx.BladeMeshes[tier] ??=
             new MeshBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>($"grass_blades_{"hml"[tier]}");
-        var primitive = mesh.UsePrimitive(bladeMaterial, 1);
+        var primitive = mesh.UsePrimitive(ctx.BladeMaterial, 1);
         var streamIdx = 0;
         for (var lodGroup = 0; lodGroup < 3; lodGroup++)
         {
@@ -785,7 +805,7 @@ public class InstanceComposer
             {
                 var instance = record.Instances[streamIdx];
                 primitive.AddPoint(BuildBladeVertex(ggd, instance, lodGroup));
-                bladeCount++;
+                ctx.BladeCount++;
             }
         }
 
@@ -793,15 +813,14 @@ public class InstanceComposer
     }
 
     private void ComposeGrassModelInstances(
-        GzdFile gzd, GgdFile ggd, GgdRecord record, GzdCell cell, int recordIdx, int streamIdx,
-        SceneBuilder scene, Dictionary<int, IMeshBuilder<MaterialBuilder>[]?> slotMeshCache, ref int modelCount)
+        GrassContext ctx, GgdFile ggd, GgdRecord record, GzdCell cell, int recordIdx, int streamIdx)
     {
         for (var slot = 0; slot < 32; slot++)
         {
             var count = record.Header.ModelCount(slot);
             if (count == 0) continue;
 
-            var meshes = ComposeGrassModelSlot(gzd, slot, slotMeshCache);
+            var meshes = ComposeGrassModelSlot(ctx, slot);
             if (meshes == null)
             {
                 streamIdx += count;
@@ -823,31 +842,29 @@ public class InstanceComposer
                 {
                     Extras = JsonNode.Parse(JsonSerializer.Serialize(new
                     {
-                        ModelPath = gzd.ModelPaths[slot],
+                        ModelPath = ctx.Gzd.ModelPaths[slot],
                         GrassCell = cell.GgdName,
                         GrassModelSlot = slot,
                     }, MaterialComposer.JsonOptions))
                 };
                 foreach (var mesh in meshes)
                 {
-                    scene.AddRigidMesh(mesh, node);
+                    ctx.ModelScene!.AddRigidMesh(mesh, node);
                 }
 
                 node.SetLocalTransform(transform.AffineTransform, false);
-                modelCount++;
+                ctx.ModelCount++;
             }
         }
     }
 
-    private void AddGrassBladeNodes(
-        GzdFile gzd, string grassDir,
-        MeshBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>?[] bladeMeshes, SceneBuilder scene)
+    private void AddGrassBladeNodes(GrassContext ctx)
     {
-        if (bladeMeshes.All(m => m == null)) return;
+        if (ctx.BladeMeshes.All(m => m == null)) return;
 
-        var grassTextures = gzd.TextureSuffixes
+        var grassTextures = ctx.Gzd.TextureSuffixes
                                .Where(s => !string.IsNullOrEmpty(s))
-                               .Select(s => $"{grassDir}/{s}.tex")
+                               .Select(s => $"{ctx.GrassDir}/{s}.tex")
                                .Select(object (texPath) =>
                                {
                                    try
@@ -865,9 +882,9 @@ public class InstanceComposer
 
         for (var tier = 0; tier < 3; tier++)
         {
-            if (bladeMeshes[tier] == null) continue;
+            if (ctx.BladeMeshes[tier] == null) continue;
 
-            var node = new NodeBuilder($"GrassBlades_{grassDir}_{"hml"[tier]}")
+            var node = new NodeBuilder($"GrassBlades_{ctx.GrassDir}_{"hml"[tier]}")
             {
                 Extras = JsonNode.Parse(JsonSerializer.Serialize(new
                 {
@@ -884,7 +901,7 @@ public class InstanceComposer
                     },
                 }, MaterialComposer.JsonOptions))
             };
-            scene.AddRigidMesh(bladeMeshes[tier]!, node);
+            ctx.BladeScene!.AddRigidMesh(ctx.BladeMeshes[tier]!, node);
         }
     }
 
@@ -906,19 +923,18 @@ public class InstanceComposer
         return new VertexBuilder<VertexPosition, GrassBladeVertex, VertexEmpty>(new VertexPosition(position), vertex);
     }
 
-    private IMeshBuilder<MaterialBuilder>[]? ComposeGrassModelSlot(
-        GzdFile gzd, int slot, Dictionary<int, IMeshBuilder<MaterialBuilder>[]?> cache)
+    private IMeshBuilder<MaterialBuilder>[]? ComposeGrassModelSlot(GrassContext ctx, int slot)
     {
-        if (cache.TryGetValue(slot, out var cached)) return cached;
+        if (ctx.SlotMeshCache.TryGetValue(slot, out var cached)) return cached;
 
         IMeshBuilder<MaterialBuilder>[]? meshes = null;
-        if (slot >= gzd.ModelPaths.Length)
+        if (slot >= ctx.Gzd.ModelPaths.Length)
         {
-            Plugin.Logger.LogWarning("Grass model slot {Slot} out of range ({Count} model paths in gzd)", slot, gzd.ModelPaths.Length);
+            Plugin.Logger.LogWarning("Grass model slot {Slot} out of range ({Count} model paths in gzd)", slot, ctx.Gzd.ModelPaths.Length);
         }
         else
         {
-            var mdlPath = gzd.ModelPaths[slot];
+            var mdlPath = ctx.Gzd.ModelPaths[slot];
             var mdlData = pack.GetFileOrReadFromDisk(mdlPath);
             if (mdlData == null)
             {
@@ -936,7 +952,7 @@ public class InstanceComposer
             }
         }
 
-        cache[slot] = meshes;
+        ctx.SlotMeshCache[slot] = meshes;
         return meshes;
     }
 

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
@@ -391,7 +391,12 @@ public partial class LayoutWindow : ITab
             {
                 flags |= UiUtil.ExportConfigDrawFlags.ShowTerrainOptions;
             }
-            
+            if (instances.Any(t => (t.Type & ParsedInstanceType.Character) != 0) ||
+                instances.Any(t => t is ParsedSharedInstance sh && sh.Flatten().Any(i => (i.Type & ParsedInstanceType.Character) != 0)))
+            {
+                flags |= UiUtil.ExportConfigDrawFlags.ShowAttachOptions;
+            }
+
             if (UiUtil.DrawExportConfig(exportConfig, flags))
             {
                 config.ExportConfig.Apply(exportConfig);

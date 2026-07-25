@@ -199,7 +199,33 @@ public class ResolverService : IService
     {
         return ParseMaterialUtil.ParseDrawObject(drawObject, pbdHooks);
     }
-    
+
+    private unsafe Character* FindCharacterByDrawObject(DrawObject* drawObject)
+    {
+        if (drawObject == null)
+            return null;
+
+        var gameObjectManager = sigUtil.GetGameObjectManager();
+        if (gameObjectManager == null)
+            return null;
+
+        for (var idx = 0; idx < gameObjectManager->Objects.GameObjectIdSorted.Length; idx++)
+        {
+            var objectPtr = gameObjectManager->Objects.GameObjectIdSorted[idx];
+            if (objectPtr.Value == null)
+                continue;
+
+            var obj = objectPtr.Value;
+            if (!IsCharacterKind(obj->GetObjectKind()))
+                continue;
+
+            if (obj->DrawObject == drawObject)
+                return (Character*)obj;
+        }
+
+        return null;
+    }
+
     public unsafe ParsedCharacterInfo? ParseCharacter(Character* character, bool includedLinkedAttaches = false)
     {
         if (character == null)
@@ -259,7 +285,10 @@ public class ResolverService : IService
                 if (childCBase == null)
                     continue;
 
-                var linkedInfo = ParseMaterialUtil.ParseDrawObject((DrawObject*)childCBase, pbdHooks);
+                var linkedCharacter = FindCharacterByDrawObject((DrawObject*)childCBase);
+                var linkedInfo = linkedCharacter != null
+                    ? ParseCharacter(linkedCharacter, true)
+                    : ParseMaterialUtil.ParseDrawObject((DrawObject*)childCBase, pbdHooks);
                 if (linkedInfo != null)
                     attaches.Add(linkedInfo);
             }
