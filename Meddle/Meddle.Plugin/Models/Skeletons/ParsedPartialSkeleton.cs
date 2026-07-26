@@ -7,6 +7,8 @@ namespace Meddle.Plugin.Models.Skeletons;
 
 public class ParsedPartialSkeleton
 {
+    public ParsedPartialSkeleton() { }
+
     public unsafe ParsedPartialSkeleton(Pointer<PartialSkeleton> partialSkeleton) :
         this(partialSkeleton.Value) { }
 
@@ -41,9 +43,9 @@ public class ParsedPartialSkeleton
         Poses = poses;
     }
 
-    public string? HandlePath { get; }
-    public ParsedHkaSkeleton? HkSkeleton { get; }
-    public IReadOnlyList<ParsedHkaPose> Poses { get; }
-    public int ConnectedBoneIndex { get; }
-    public uint BoneCount { get; }
+    public string? HandlePath { get; init; }
+    public ParsedHkaSkeleton? HkSkeleton { get; init; }
+    public IReadOnlyList<ParsedHkaPose> Poses { get; init; } = [];
+    public int ConnectedBoneIndex { get; init; }
+    public uint BoneCount { get; init; }
 }

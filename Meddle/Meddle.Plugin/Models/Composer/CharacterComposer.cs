@@ -213,36 +213,6 @@ public class CharacterComposer
     private int attachSuffix;
     private readonly object attachLock = new();
 
-    private static Matrix4x4 ToMatrix(AffineTransform t) =>
-        Matrix4x4.CreateScale(t.Scale) * Matrix4x4.CreateFromQuaternion(t.Rotation) * Matrix4x4.CreateTranslation(t.Translation);
-
-    private static Matrix4x4 ComputeOwnerWorldMatrix(BoneNodeBuilder? attachPointBone, ParsedSkeleton ownerSkeleton, ComposeContext ctx)
-    {
-        var world = Matrix4x4.Identity;
-        NodeBuilder? c = attachPointBone;
-        while (c != null)
-        {
-            if (c is BoneNodeBuilder { IsGenerated: false } boneNode &&
-                SkeletonUtils.GetBoneTransform(ownerSkeleton, boneNode) is { } poseTransform)
-            {
-                world *= ToMatrix(poseTransform);
-            }
-            else
-            {
-                world *= c.LocalMatrix;
-
-                if (c == ctx.Root)
-                {
-                    world *= ctx.InstanceWorldTransform;
-                }
-            }
-
-            c = c.Parent;
-        }
-
-        return world;
-    }
-
     private bool HandleAttach(ComposeContext ctx, AttachContext attachData, BoneNodeBuilder rootBone, ref Matrix4x4 transform)
     {
         bool rootParented;
@@ -278,7 +248,7 @@ public class CharacterComposer
         if (exportConfig.ExportAttachesAsSeparateObjects)
         {
             var attachRoot = new NodeBuilder($"Attach-{ctx.Root.Name}-{attachName}");
-            attachRoot.LocalMatrix = ComputeOwnerWorldMatrix(attachPointBone, attachData.Owner.Skeleton, ctx);
+            attachRoot.LocalMatrix = SkeletonUtils.ComputeBoneWorldMatrix(attachPointBone, attachData.Owner.Skeleton, ctx.InstanceWorldTransform, ctx.Root);
             ctx.Scene.AddNode(attachRoot);
             attachRoot.AddNode(rootBone);
             rootParented = true;
@@ -360,7 +330,7 @@ public class CharacterComposer
                         var ownerName = ctx.Root.Name;
                         ctx.Root.Name = $"Mount_{ownerName}";
                         var mountedRoot = new NodeBuilder($"Attach-{attachName}-{ownerName}");
-                        mountedRoot.LocalMatrix = ComputeOwnerWorldMatrix(attachPointBone, rootAttach.Skeleton, ctx);
+                        mountedRoot.LocalMatrix = SkeletonUtils.ComputeBoneWorldMatrix(attachPointBone, rootAttach.Skeleton, ctx.InstanceWorldTransform, ctx.Root);
                         ctx.Scene.AddNode(mountedRoot);
                         mountedRoot.AddNode(rootBone);
                         rootParented = true;

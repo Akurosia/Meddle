@@ -8,6 +8,8 @@ namespace Meddle.Plugin.Models.Skeletons;
 
 public class ParsedHkaPose
 {
+    public ParsedHkaPose() { }
+
     public unsafe ParsedHkaPose(Pointer<hkaPose> pose) : this(pose.Value) { }
 
     public unsafe ParsedHkaPose(hkaPose* pose)
@@ -43,7 +45,7 @@ public class ParsedHkaPose
         // HkModelSpaceMatrices = hkModelSpaceMatrices;
     }
 
-    public IReadOnlyList<Transform> Pose { get; }
+    public IReadOnlyList<Transform> Pose { get; init; } = [];
 
     // [JsonIgnore]
     // public IReadOnlyList<Matrix4x4> HkLocalSpaceMatrices { get; }

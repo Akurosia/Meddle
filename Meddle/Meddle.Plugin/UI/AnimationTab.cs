@@ -16,10 +16,7 @@ using ObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 
 namespace Meddle.Plugin.UI;
 
-public record AnimationExportSettings(
-    bool IncludePositionalData,
-    bool IncludeAbsolutePosition,
-    string Path);
+public record AnimationExportSettings(string Path);
 
 public class AnimationTab : ITab
 {
@@ -27,13 +24,13 @@ public class AnimationTab : ITab
     private readonly CommonUi commonUi;
     private readonly IObjectTable objectTable;
     private readonly Configuration config;
+    private readonly SigUtil sigUtil;
     private readonly List<(DateTime Time, AttachSet[])> frames = [];
     private readonly IFramework framework;
     private readonly ILogger<AnimationTab> logger;
     private bool captureAnimation;
-    private bool includePositionalData;
-    private bool includeAbsolutePosition;
     private bool requestedPopup;
+    private bool exportRawDump = true;
     private int intervalMs = 100;
     private Action? drawExportSettingsCallback;
     public MenuType MenuType => MenuType.Default;
@@ -47,7 +44,8 @@ public class AnimationTab : ITab
         AnimationExportService animationExportService,
         CommonUi commonUi,
         IObjectTable objectTable,
-        Configuration config)
+        Configuration config,
+        SigUtil sigUtil)
     {
         this.framework = framework;
         this.logger = logger;
@@ -55,6 +53,7 @@ public class AnimationTab : ITab
         this.commonUi = commonUi;
         this.objectTable = objectTable;
         this.config = config;
+        this.sigUtil = sigUtil;
         this.framework.Update += OnFrameworkUpdate;
     }
 
@@ -108,23 +107,31 @@ public class AnimationTab : ITab
                 }
                 try
                 {
-                    ImGui.Checkbox("Include Positional Data", ref includePositionalData);
-                    
-                    using (var disabled = ImRaii.Disabled(!includePositionalData))
+                    ImGui.TextUnformatted("Exports a skeleton gltf plus absolute and local-position gltfs for each captured object.");
+
+                    if (config.DisplayDebugInfo)
                     {
-                        ImGui.Checkbox("Absolute Position", ref includeAbsolutePosition);
-                        ImGui.SameLine();
-                        UiUtil.HintCircle("When checked, the position will be treated as world position, otherwise it will be relative to the first frame.");
+                        ImGui.Checkbox("Also export raw capture dump", ref exportRawDump);
                     }
-                    
+                    else
+                    {
+                        exportRawDump = false;
+                    }
+
                     if (ImGui.Button("Export"))
                     {
-                        var settings = new AnimationExportSettings(includePositionalData, includeAbsolutePosition, folderName);
+                        var includeRawDump = exportRawDump;
                         fileDialog.SaveFolderDialog("Save Animation", folderName, (result, path) =>
                         {
                             if (!result) return;
-                            animationExportService.ExportAnimation(frames, settings with { Path = path }, CancellationToken.None);
-                        }, config.ExportDirectory); 
+                            var settings = new AnimationExportSettings(path);
+                            animationExportService.ExportAnimation(frames, settings, CancellationToken.None);
+                            if (includeRawDump)
+                            {
+                                animationExportService.ExportRawDump(frames, settings, CancellationToken.None);
+                            }
+                            ExportUtil.OpenExportFolderInExplorer(path, config, CancellationToken.None);
+                        }, config.ExportDirectory);
                         drawExportSettingsCallback = null;
                         ImGui.CloseCurrentPopup();
                     }
@@ -234,8 +241,19 @@ public class AnimationTab : ITab
 
                 attachCollection.Add(characterAttach);
             }
+
+            foreach (var linkedAttach in GetLinkedAttachData(charPtr, rootName, actorName, sigUtil, objectTable, logger))
+            {
+                // skip ie. weapon/mount/ornament may already be resolved as a "known" linked attach
+                if (attachCollection.Any(a => a.Id == linkedAttach.Id))
+                {
+                    continue;
+                }
+
+                attachCollection.Add(linkedAttach);
+            }
         }
-        
+
         frames.Add((DateTime.UtcNow, attachCollection.ToArray()));
     }
 
@@ -296,6 +314,53 @@ public class AnimationTab : ITab
         }
 
         return attachments.ToArray();
+    }
+
+    private static unsafe AttachSet[] GetLinkedAttachData(
+        Character* charPtr, string ownerId, string actorName, SigUtil sigUtil, IObjectTable objectTable, ILogger logger)
+    {
+        List<Pointer<CharacterBase>> linked;
+        try
+        {
+            linked = StructExtensions.GetLinkedAttaches(charPtr, sigUtil);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to resolve Attach vtable, skipping linked attaches for {ActorName}", actorName);
+            return [];
+        }
+
+        var attachments = new List<AttachSet>();
+        for (var i = 0; i < linked.Count; i++)
+        {
+            var linkedBase = linked[i].Value;
+            if (linkedBase == null) continue;
+
+            var linkedCharacter = FindCharacterByDrawObject(objectTable, (DrawObject*)linkedBase);
+            var linkedName = linkedCharacter != null
+                ? $"Linked_{linkedCharacter->NameString}"
+                : $"Linked{i}_{actorName}";
+
+            attachments.Add(new AttachSet($"{(nint)linkedBase:X8}", linkedName, StructExtensions.GetParsedAttach(linkedBase),
+                                           StructExtensions.GetParsedSkeleton(linkedBase), GetTransform(linkedBase), ownerId));
+        }
+
+        return attachments.ToArray();
+    }
+
+    private static unsafe Character* FindCharacterByDrawObject(IObjectTable objectTable, DrawObject* drawObject)
+    {
+        if (drawObject == null) return null;
+        foreach (var obj in objectTable.GetCharacters())
+        {
+            var ptr = (Character*)obj.Address;
+            if (ptr != null && ptr->GameObject.DrawObject == drawObject)
+            {
+                return ptr;
+            }
+        }
+
+        return null;
     }
 
     private unsafe void DrawSelectedCharacter(ICharacter? selectedCharacter = null)
