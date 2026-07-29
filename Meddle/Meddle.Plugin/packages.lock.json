@@ -395,8 +395,7 @@
       "meddle.formats": {
         "type": "Project",
         "dependencies": {
-          "Meddle.SqPack": "[1.0.0, )",
-          "SkiaSharp": "[3.119.0, )"
+          "Meddle.SqPack": "[1.0.0, )"
         }
       },
       "meddle.sqpack": {
