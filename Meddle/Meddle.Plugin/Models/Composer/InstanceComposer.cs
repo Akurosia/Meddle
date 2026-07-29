@@ -1,6 +1,9 @@
 ﻿using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Meddle.Formats.Files;
+using Meddle.Formats.Files.MdlFile;
+using Meddle.Formats.Helpers;
 using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.UI.Layout;

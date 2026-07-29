@@ -1,9 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Meddle.SqPack.Structs.Model;
-using Meddle.Utils.Files.Structs.Model;
 
-namespace Meddle.Utils.Files;
+namespace Meddle.Formats.Files.MdlFile;
 
 public class MdlFile
 {

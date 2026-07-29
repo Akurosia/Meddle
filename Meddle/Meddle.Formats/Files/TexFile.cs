@@ -1,9 +1,10 @@
 ﻿using System.Runtime.InteropServices;
 using Meddle.SqPack;
 using OtterTex;
+
 // ReSharper disable InconsistentNaming
 
-namespace Meddle.Utils.Files;
+namespace Meddle.Formats.Files;
 
 public class TexFile
 {

@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.RegularExpressions;
-using Meddle.Utils.Constants;
+using Meddle.Formats.Constants;
+using Meddle.Formats.Files;
 using Meddle.Utils.Files;
 
 namespace Meddle.Utils;

@@ -1,9 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
-using Meddle.Utils.Files;
-using Meddle.Utils.Files.Structs.Material;
+using Meddle.Formats.Files.MtrlFile;
 
-namespace Meddle.Utils.Helpers;
+namespace Meddle.Formats.Helpers;
 
 public static class MaterialUtils
 {

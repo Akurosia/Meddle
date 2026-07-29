@@ -2,7 +2,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Meddle.Utils.Files;
+namespace Meddle.Formats.Files;
 
 [SuppressMessage("ReSharper", "RedundantAssignment")]
 public class ShpkFile

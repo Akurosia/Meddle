@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 
-namespace Meddle.Utils.Files;
+namespace Meddle.Formats.Files;
 
 public struct TeraFile
 {

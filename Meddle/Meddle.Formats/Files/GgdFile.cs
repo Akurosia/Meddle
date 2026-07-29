@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 
-namespace Meddle.Utils.Files;
+namespace Meddle.Formats.Files;
 
 /// <summary>
 /// Parses a GrassGridData (.ggd) file, e.g. <c>bg/.../grass/019_001_022_l.ggd</c>.

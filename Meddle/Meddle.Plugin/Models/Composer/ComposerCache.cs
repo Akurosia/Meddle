@@ -1,8 +1,12 @@
 ﻿using System.Collections.Concurrent;
+using Meddle.Formats;
+using Meddle.Formats.Files;
+using Meddle.Formats.Files.MdlFile;
+using Meddle.Formats.Files.MtrlFile;
+using Meddle.Formats.Helpers;
 using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Utils;
 using Meddle.Utils;
-using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
 using Meddle.Utils.Files;
 using Meddle.Utils.Files.Structs.Material;

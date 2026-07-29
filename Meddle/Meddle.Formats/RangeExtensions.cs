@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Meddle.Utils;
+namespace Meddle.Formats;
 
 public static class RangeExtensions
 {

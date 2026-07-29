@@ -1,4 +1,4 @@
-﻿namespace Meddle.Utils.Helpers;
+﻿namespace Meddle.Formats.Helpers;
 
 public static class PathUtil
 {

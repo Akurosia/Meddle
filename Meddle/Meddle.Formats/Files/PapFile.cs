@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Meddle.Utils.Files;
+namespace Meddle.Formats.Files;
 
 public class PapFile
 {

@@ -65,6 +65,13 @@
         "resolved": "3.119.0",
         "contentHash": "IwC9yx36lOdXVT2DjgmWHl1qkVspfj8ctd4+li8CNnvqdfaTolXCOh6TLznURcPAvzatx9K/tLOB7zT6T8EA9w=="
       },
+      "meddle.formats": {
+        "type": "Project",
+        "dependencies": {
+          "Meddle.SqPack": "[1.0.0, )",
+          "SkiaSharp": "[3.119.0, )"
+        }
+      },
       "meddle.sqpack": {
         "type": "Project",
         "dependencies": {

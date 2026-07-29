@@ -1,9 +1,8 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Runtime.InteropServices;
-using SkiaSharp;
 
 // ReSharper disable InconsistentNaming
-namespace Meddle.Utils.Files.Structs.Material;
+namespace Meddle.Formats.Files.MtrlFile;
 
 // https://github.com/Ottermandias/Penumbra.GameData/blob/main/Files/MaterialStructs/ColorTable.cs
 /// <summary>
@@ -46,22 +45,6 @@ public struct ShortVec4
         return new Vector3(ToFloat(X), ToFloat(Y), ToFloat(Z));
     }
     
-    private static Vector4 Clamp(Vector4 v, float min, float max)
-    {
-        return new Vector4(
-            Math.Clamp(v.X, min, max),
-            Math.Clamp(v.Y, min, max),
-            Math.Clamp(v.Z, min, max),
-            Math.Clamp(v.W, min, max)
-        );
-    }
-    
-    public SKColor ToSkColor()
-    {
-        var color = ToVector4();
-        var c = Clamp(color, 0, 1);
-        return new SKColor((byte)(c.X * 255), (byte)(c.Y * 255), (byte)(c.Z * 255), (byte)(c.W * 255));
-    }
 }
 
 [StructLayout(LayoutKind.Explicit, Size = Size)]

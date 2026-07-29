@@ -2,6 +2,8 @@
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
 using FFXIVClientStructs.Interop;
+using Meddle.Formats.Files;
+using Meddle.Formats.Helpers;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Files;
 using Meddle.Utils.Helpers;

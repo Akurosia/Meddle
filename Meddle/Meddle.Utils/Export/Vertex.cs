@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
+using Meddle.Formats;
+using Meddle.Formats.Files.MdlFile;
 using Meddle.SqPack;
-using Meddle.Utils.Files.Structs.Model;
 using Microsoft.Extensions.Logging;
 
 namespace Meddle.Utils.Export;

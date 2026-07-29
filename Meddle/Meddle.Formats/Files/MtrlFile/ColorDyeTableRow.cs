@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Meddle.Utils.Files.Structs.Material;
+namespace Meddle.Formats.Files.MtrlFile;
 
 // https://github.com/Ottermandias/Penumbra.GameData/blob/757aaa39ac4aa988d0b8597ff088641a0f4f49fd/Files/MaterialStructs/ColorDyeTableRow.cs
 [StructLayout(LayoutKind.Explicit, Size = 4)]

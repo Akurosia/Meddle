@@ -5,6 +5,7 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Meddle/">
+    <Project Path="Meddle/Meddle.Formats/Meddle.Formats.csproj" />
     <Project Path="Meddle/Meddle.SqPack/Meddle.SqPack.csproj" />
   </Folder>
   <Project Path="Meddle/Meddle.Plugin/Meddle.Plugin.csproj" />

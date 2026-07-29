@@ -1,10 +1,10 @@
-using Meddle.Utils.Files.Structs.Model;
+using Meddle.Formats.Files.MdlFile;
 
 namespace Meddle.Utils.Export;
 
 public class ShapeMesh
 {
-    public ShapeMesh(Span<ShapeValue> shapeValues, Meddle.Utils.Files.Structs.Model.ShapeMesh shapeMesh, Mesh mesh)
+    public ShapeMesh(Span<ShapeValue> shapeValues, Formats.Files.MdlFile.ShapeMesh shapeMesh, Mesh mesh)
     {
         var values = new List<(ushort BaseIndicesIndex, ushort ReplacingVertexIndex)>();
         var range = Enumerable.Range((int)shapeMesh.ShapeValueOffset, (int)shapeMesh.ShapeValueCount);

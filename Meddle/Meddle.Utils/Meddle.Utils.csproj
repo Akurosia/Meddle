@@ -29,6 +29,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Meddle.SqPack\Meddle.SqPack.csproj" />
+        <ProjectReference Include="..\Meddle.Formats\Meddle.Formats.csproj" />
     </ItemGroup>
 </Project>

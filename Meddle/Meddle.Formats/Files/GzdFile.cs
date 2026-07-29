@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 
-namespace Meddle.Utils.Files;
+namespace Meddle.Formats.Files;
 
 /// <summary>
 /// Parses a GrassZoneData (.gzd) file, i.e. <c>bg/.../grass/grass_zone_data.gzd</c>

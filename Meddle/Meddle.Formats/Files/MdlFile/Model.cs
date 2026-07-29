@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Meddle.Utils.Files.Structs.Model;
+namespace Meddle.Formats.Files.MdlFile;
 
 /*[GenerateInterop]
 [StructLayout(LayoutKind.Explicit, Size = 32)]

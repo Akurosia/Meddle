@@ -1,4 +1,4 @@
-﻿namespace Meddle.Utils.Files.Structs.Material;
+namespace Meddle.Formats.Files.MtrlFile;
 
 public interface IColorTableSet;
 
@@ -101,20 +101,9 @@ public readonly struct LegacyColorTable
     public const int LegacyNumRows = 16;
     public const int Size = LegacyNumRows * LegacyColorTableRow.Size;
     private readonly LegacyColorTableRow[] rows;
-    private readonly ShortVec4[][] buffer; 
+    private readonly ShortVec4[][] buffer;
     public static readonly (int Width, int Height) TextureSize = (8, 16);
-    public SkTexture ToTexture()
-    {
-        var texture = new SkTexture(TextureSize.Width, TextureSize.Height);
-        for (int x = 0; x < TextureSize.Width; x++)
-        {
-            for (int y = 0; y < TextureSize.Height; y++)
-            {
-                texture[x, y] = buffer[y][x].ToSkColor();
-            }
-        }
-        return texture;
-    }
+    public IReadOnlyList<ShortVec4[]> Buffer => buffer;
     public ReadOnlySpan<LegacyColorTableRow> Rows => new(rows);
     public LegacyColorTable(ref SpanBinaryReader reader)
     {
@@ -157,20 +146,8 @@ public readonly struct ColorTable
     private readonly ColorTableRow[] rows;
     private readonly ShortVec4[][] buffer;
     public static readonly (int Width, int Height) TextureSize = (8, 32);
-    
-    public SkTexture ToTexture()
-    {
-        var texture = new SkTexture(TextureSize.Width, TextureSize.Height);
-        for (int x = 0; x < TextureSize.Width; x++)
-        {
-            for (int y = 0; y < TextureSize.Height; y++)
-            {
-                texture[x, y] = buffer[y][x].ToSkColor();
-            }
-        }
-        return texture;
-    }
-    
+    public IReadOnlyList<ShortVec4[]> Buffer => buffer;
+
     public ReadOnlySpan<ColorTableRow> Rows => new(rows);
     public ColorTable(ref SpanBinaryReader reader)
     {

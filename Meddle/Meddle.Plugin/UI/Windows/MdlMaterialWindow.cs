@@ -5,9 +5,9 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
 using FFXIVClientStructs.Interop;
 using Dalamud.Bindings.ImGui;
+using Meddle.Formats.Constants;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Constants;
 
 namespace Meddle.Plugin.UI.Windows;
 

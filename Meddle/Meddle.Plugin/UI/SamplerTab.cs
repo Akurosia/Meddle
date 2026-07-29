@@ -1,6 +1,9 @@
 ﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using Meddle.Formats;
+using Meddle.Formats.Files;
+using Meddle.Formats.Helpers;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;

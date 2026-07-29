@@ -1,6 +1,4 @@
-﻿using Meddle.Utils.Export;
-
-namespace Meddle.Utils.Constants;
+﻿namespace Meddle.Formats.Constants;
 
 // Based on:
 // https://github.com/Ottermandias/Penumbra.GameData/blob/33fea10e18ec9f8a5b309890de557fcb25780086/Files/ShaderStructs/Names.cs
