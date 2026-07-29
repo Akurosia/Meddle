@@ -8,12 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Reference Include="OtterTex">
-            <HintPath>..\Meddle.Utils\Lib\OtterTex.dll</HintPath>
-        </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\Meddle.SqPack\Meddle.SqPack.csproj" />
     </ItemGroup>
 </Project>

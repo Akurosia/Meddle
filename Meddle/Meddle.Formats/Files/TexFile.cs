@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using Meddle.SqPack;
-using OtterTex;
 
 // ReSharper disable InconsistentNaming
 
@@ -159,67 +158,6 @@ public class TexFile
 
         var length = Math.Min(TextureBuffer.Length - offset, sliceSize);
         return TextureBuffer.AsSpan(offset, length);
-    }
-
-    public static TexDimension GetTexDimensionFromAttribute(Attribute attribute)
-    {
-        var dimension = attribute switch
-        {
-            Attribute.TextureType1D => TexDimension.Tex1D,
-            Attribute.TextureType2D => TexDimension.Tex2D,
-            Attribute.TextureType3D => TexDimension.Tex3D,
-            Attribute.TextureType2DArray => TexDimension.Tex2D,
-            Attribute.TextureTypeCube => TexDimension.Tex2D,
-            _ => throw new NotImplementedException($"Unknown texture dimension: {attribute} [{attribute:X2}]")
-        };
-
-        return dimension;
-    }
-
-    public static DXGIFormat GetDxgiFormatFromTextureFormat(TextureFormat format)
-    {
-        var dxf = format switch
-        {
-            TextureFormat.Unknown => DXGIFormat.Unknown,
-            TextureFormat.L8_UNORM => DXGIFormat.R8UNorm,
-            TextureFormat.A8_UNORM => DXGIFormat.A8UNorm,
-            TextureFormat.R8_UNORM => DXGIFormat.R8UNorm,
-            TextureFormat.R8_UINT => DXGIFormat.R8UInt,
-            TextureFormat.R16_UINT => DXGIFormat.R16UInt,
-            TextureFormat.R32_UINT => DXGIFormat.R32UInt,
-            TextureFormat.R8G8_UNORM => DXGIFormat.R8G8UNorm,
-            TextureFormat.B4G4R4A4_UNORM => DXGIFormat.B4G4R4A4UNorm,
-            TextureFormat.B5G5R5A1_UNORM => DXGIFormat.B5G5R5A1UNorm,
-            TextureFormat.B8G8R8A8_UNORM => DXGIFormat.B8G8R8A8UNorm,
-            TextureFormat.B8G8R8X8_UNORM => DXGIFormat.B8G8R8X8UNorm,
-            TextureFormat.R16F => DXGIFormat.R16Float,
-            TextureFormat.R32F => DXGIFormat.R32Float,
-            TextureFormat.R16G16F => DXGIFormat.R16G16Float,
-            TextureFormat.R32G32F => DXGIFormat.R32G32Float,
-            TextureFormat.R11G11B10F => DXGIFormat.R11G11B10Float,
-            TextureFormat.R16G16B16A16F => DXGIFormat.R16G16B16A16Float,
-            TextureFormat.R32G32B32A32F => DXGIFormat.R32G32B32A32Float,
-            TextureFormat.BC1_UNORM => DXGIFormat.BC1UNorm,
-            TextureFormat.BC2_UNORM => DXGIFormat.BC2UNorm,
-            TextureFormat.BC3_UNORM => DXGIFormat.BC3UNorm,
-            TextureFormat.D16_UNORM => DXGIFormat.D16UNorm,
-            TextureFormat.D24_UNORM_S8_UINT => DXGIFormat.D24UNormS8UInt,
-            // TextureFormat.D16_UNORM_2 => DXGIFormat.D16UNorm,
-            // TextureFormat.D24_UNORM_S8_UINT_2 => DXGIFormat.D24UNormS8UInt,
-            TextureFormat.BC4_UNORM => DXGIFormat.BC4UNorm,
-            TextureFormat.BC5_UNORM => DXGIFormat.BC5UNorm,
-            TextureFormat.BC6H_SF16 => DXGIFormat.BC6HSF16,
-            TextureFormat.BC7_UNORM => DXGIFormat.BC7UNorm,
-            TextureFormat.R16_UNORM => DXGIFormat.R16UNorm,
-            TextureFormat.R16G16_UNORM => DXGIFormat.R16G16UNorm,
-            // TextureFormat.R10G10B10A2_UNORM_2 => DXGIFormat.R10G10B10A2UNorm,
-            TextureFormat.R10G10B10A2_UNORM => DXGIFormat.R10G10B10A2UNorm,
-            // TextureFormat.D24_UNORM_S8_UINT_3 => DXGIFormat.D24UNormS8UInt,
-            
-            _ => throw new NotImplementedException($"Unknown texture format: {format}")
-        };
-
-        return dxf;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 80)]

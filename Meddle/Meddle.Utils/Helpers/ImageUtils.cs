@@ -10,6 +10,68 @@ namespace Meddle.Utils.Helpers;
 
 public static class ImageUtils
 {
+    public static TexDimension ToTexDimension(this TexFile.Attribute attribute)
+    {
+        var dimension = attribute switch
+        {
+            TexFile.Attribute.TextureType1D => TexDimension.Tex1D,
+            TexFile.Attribute.TextureType2D => TexDimension.Tex2D,
+            TexFile.Attribute.TextureType3D => TexDimension.Tex3D,
+            TexFile.Attribute.TextureType2DArray => TexDimension.Tex2D,
+            TexFile.Attribute.TextureTypeCube => TexDimension.Tex2D,
+            _ => throw new NotImplementedException($"Unknown texture dimension: {attribute} [{attribute:X2}]")
+        };
+
+        return dimension;
+    }
+
+    public static DXGIFormat ToDxgiFormat(this TexFile.TextureFormat format)
+    {
+        var dxf = format switch
+        {
+            TexFile.TextureFormat.Unknown => DXGIFormat.Unknown,
+            TexFile.TextureFormat.L8_UNORM => DXGIFormat.R8UNorm,
+            TexFile.TextureFormat.A8_UNORM => DXGIFormat.A8UNorm,
+            TexFile.TextureFormat.R8_UNORM => DXGIFormat.R8UNorm,
+            TexFile.TextureFormat.R8_UINT => DXGIFormat.R8UInt,
+            TexFile.TextureFormat.R16_UINT => DXGIFormat.R16UInt,
+            TexFile.TextureFormat.R32_UINT => DXGIFormat.R32UInt,
+            TexFile.TextureFormat.R8G8_UNORM => DXGIFormat.R8G8UNorm,
+            TexFile.TextureFormat.B4G4R4A4_UNORM => DXGIFormat.B4G4R4A4UNorm,
+            TexFile.TextureFormat.B5G5R5A1_UNORM => DXGIFormat.B5G5R5A1UNorm,
+            TexFile.TextureFormat.B8G8R8A8_UNORM => DXGIFormat.B8G8R8A8UNorm,
+            TexFile.TextureFormat.B8G8R8X8_UNORM => DXGIFormat.B8G8R8X8UNorm,
+            TexFile.TextureFormat.R16F => DXGIFormat.R16Float,
+            TexFile.TextureFormat.R32F => DXGIFormat.R32Float,
+            TexFile.TextureFormat.R16G16F => DXGIFormat.R16G16Float,
+            TexFile.TextureFormat.R32G32F => DXGIFormat.R32G32Float,
+            TexFile.TextureFormat.R11G11B10F => DXGIFormat.R11G11B10Float,
+            TexFile.TextureFormat.R16G16B16A16F => DXGIFormat.R16G16B16A16Float,
+            TexFile.TextureFormat.R32G32B32A32F => DXGIFormat.R32G32B32A32Float,
+            TexFile.TextureFormat.BC1_UNORM => DXGIFormat.BC1UNorm,
+            TexFile.TextureFormat.BC2_UNORM => DXGIFormat.BC2UNorm,
+            TexFile.TextureFormat.BC3_UNORM => DXGIFormat.BC3UNorm,
+            TexFile.TextureFormat.D16_UNORM => DXGIFormat.D16UNorm,
+            TexFile.TextureFormat.D24_UNORM_S8_UINT => DXGIFormat.D24UNormS8UInt,
+            // TexFile.TextureFormat.D16_UNORM_2 => DXGIFormat.D16UNorm,
+            // TexFile.TextureFormat.D24_UNORM_S8_UINT_2 => DXGIFormat.D24UNormS8UInt,
+            TexFile.TextureFormat.BC4_UNORM => DXGIFormat.BC4UNorm,
+            TexFile.TextureFormat.BC5_UNORM => DXGIFormat.BC5UNorm,
+            TexFile.TextureFormat.BC6H_SF16 => DXGIFormat.BC6HSF16,
+            TexFile.TextureFormat.BC7_UNORM => DXGIFormat.BC7UNorm,
+            TexFile.TextureFormat.R16_UNORM => DXGIFormat.R16UNorm,
+            TexFile.TextureFormat.R16G16_UNORM => DXGIFormat.R16G16UNorm,
+            // TexFile.TextureFormat.R10G10B10A2_UNORM_2 => DXGIFormat.R10G10B10A2UNorm,
+            TexFile.TextureFormat.R10G10B10A2_UNORM => DXGIFormat.R10G10B10A2UNorm,
+            // TexFile.TextureFormat.D24_UNORM_S8_UINT_3 => DXGIFormat.D24UNormS8UInt,
+
+            _ => throw new NotImplementedException($"Unknown texture format: {format}")
+        };
+
+        return dxf;
+    }
+
+
     // public static int GetStride(this TexFile.TextureFormat format, int width)
     // {
     //     return format switch
@@ -30,12 +92,12 @@ public static class ImageUtils
         if (h.Type.HasFlag(TexFile.Attribute.TextureTypeCube))
             flags |= D3DResourceMiscFlags.TextureCube;
         return new TextureResource(
-            TexFile.GetDxgiFormatFromTextureFormat(h.Format),
+            h.Format.ToDxgiFormat(),
             h.Width,
             h.Height,
             h.CalculatedMips,
             h.CalculatedArraySize,
-            TexFile.GetTexDimensionFromAttribute(h.Type),
+            h.Type.ToTexDimension(),
             flags,
             file.TextureBuffer);
     }
@@ -93,8 +155,8 @@ public static class ImageUtils
             Depth = tex.Header.Depth,
             MipLevels = tex.Header.CalculatedMips,
             ArraySize = tex.Header.CalculatedArraySize,
-            Format = TexFile.GetDxgiFormatFromTextureFormat(tex.Header.Format),
-            Dimension = TexFile.GetTexDimensionFromAttribute(tex.Header.Type),
+            Format = tex.Header.Format.ToDxgiFormat(),
+            Dimension = tex.Header.Type.ToTexDimension(),
             MiscFlags = miscFlags,
             MiscFlags2 = 0,
         };
