@@ -7,7 +7,6 @@ using Meddle.Plugin.Services;
 using Meddle.Plugin.UI.Windows;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI;
@@ -16,10 +15,10 @@ public class TerrainDebugTab : ITab
 {
     private readonly SigUtil sigUtil;
     private readonly MdlMaterialWindowManager mdlMaterialWindowManager;
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private Dictionary<string, object?> fileCache = new Dictionary<string, object>();
     public TerrainDebugTab(SigUtil sigUtil, 
-                           MdlMaterialWindowManager mdlMaterialWindowManager, SqPack pack)
+                           MdlMaterialWindowManager mdlMaterialWindowManager, SqPack.SqPack pack)
     {
         this.sigUtil = sigUtil;
         this.mdlMaterialWindowManager = mdlMaterialWindowManager;

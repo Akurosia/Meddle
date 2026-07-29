@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
@@ -11,7 +11,6 @@ using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.UI.Windows;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 
 namespace Meddle.Plugin.UI.Layout;
@@ -22,7 +21,7 @@ public partial class LayoutWindow : ITab
     private readonly MdlMaterialWindowManager mdlMaterialWindowManager;
     private readonly IFramework framework;
     private readonly Configuration config;
-    private readonly SqPack dataManager;
+    private readonly SqPack.SqPack dataManager;
 
     private readonly FileDialogManager fileDialog = new()
     {
@@ -62,7 +61,7 @@ public partial class LayoutWindow : ITab
         ComposerFactory composerFactory,
         MdlMaterialWindowManager mdlMaterialWindowManager,
         IFramework framework,
-        SqPack dataManager)
+        SqPack.SqPack dataManager)
     {
         this.layoutService = layoutService;
         this.config = config;

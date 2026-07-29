@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using Meddle.SqPack;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
 using Meddle.Utils.Helpers;

@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
-namespace Meddle.Utils.Files.SqPack;
+namespace Meddle.SqPack;
 
 public class Repository : IDisposable
 {

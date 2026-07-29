@@ -5,7 +5,6 @@ using Meddle.Utils;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Files.Structs.Material;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
@@ -29,11 +28,11 @@ public class ComposerCache
         public DateTime LastAccess { get; set; } = DateTime.UtcNow;
     }
     
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly string cacheDir;
     private readonly Configuration.ExportConfiguration exportConfig;
 
-    public ComposerCache(SqPack pack, string cacheDir, Configuration.ExportConfiguration exportConfig)
+    public ComposerCache(SqPack.SqPack pack, string cacheDir, Configuration.ExportConfiguration exportConfig)
     {
         this.pack = pack;
         this.cacheDir = cacheDir;

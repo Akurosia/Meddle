@@ -10,17 +10,16 @@ using FFXIVClientStructs.Interop;
 using FFXIVClientStructs.STD;
 using InteropGenerator.Runtime;
 using Meddle.Plugin.Models;
-using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 
 namespace Meddle.Plugin.UI;
 
 public class RsfTab : ITab
 {
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly ILogger<RsfTab> logger;
 
-    public RsfTab(SqPack pack, ILogger<RsfTab> logger)
+    public RsfTab(SqPack.SqPack pack, ILogger<RsfTab> logger)
     {
         this.pack = pack;
         this.logger = logger;

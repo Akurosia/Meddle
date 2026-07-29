@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Meddle.SqPack;
 using Meddle.Utils.Files.Structs.Model;
 using Microsoft.Extensions.Logging;
 

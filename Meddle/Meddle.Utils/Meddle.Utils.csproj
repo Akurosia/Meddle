@@ -27,4 +27,8 @@
         <PackageReference Include="SkiaSharp" Version="3.119.0" />
         <PackageReference Include="System.IO.Hashing" Version="10.0.1" />
     </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Meddle.SqPack\Meddle.SqPack.csproj" />
+    </ItemGroup>
 </Project>

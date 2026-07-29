@@ -6,14 +6,13 @@ using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Export;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI;
 
 public class SamplerTab : ITab
 {
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly IDataManager dataManager;
     private readonly TextureCache textureCache;
     private readonly ITextureProvider textureProvider;
@@ -21,7 +20,7 @@ public class SamplerTab : ITab
     public int Order => 5;
     public MenuType MenuType => MenuType.Debug;
 
-    public SamplerTab(SqPack pack,
+    public SamplerTab(SqPack.SqPack pack,
     IDataManager dataManager,
     TextureCache textureCache,
     ITextureProvider textureProvider)

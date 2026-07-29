@@ -1,13 +1,12 @@
 ﻿using Meddle.Plugin.Models.Composer;
-using Meddle.Utils.Files.SqPack;
 
 namespace Meddle.Plugin.Services;
 
 public class ComposerFactory : IService
 {
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
 
-    public ComposerFactory(SqPack pack)
+    public ComposerFactory(SqPack.SqPack pack)
     {
         this.pack = pack;
     }

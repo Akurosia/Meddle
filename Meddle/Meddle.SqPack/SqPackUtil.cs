@@ -1,8 +1,12 @@
 ﻿using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Meddle.SqPack.Structs;
+using Meddle.SqPack.Structs.Model;
+using Meddle.SqPack.Structs.Standard;
+using Meddle.SqPack.Structs.Texture;
 
-namespace Meddle.Utils.Files.SqPack;
+namespace Meddle.SqPack;
 
 public static class SqPackUtil
 {
@@ -84,7 +88,7 @@ public static class SqPackUtil
         using (var ms = new MemoryStream(buffer))
         {
             // we're going to write the blocks first, then the header
-            var headerSize = Unsafe.SizeOf<MdlFile.ModelFileHeader>();
+            var headerSize = Unsafe.SizeOf<ModelFileHeader>();
             ms.Seek(headerSize, SeekOrigin.Begin);
             
             // keep note of the end of the header since all blocks are relative to this
@@ -200,7 +204,7 @@ public static class SqPackUtil
             }
 
             ms.Seek(0, SeekOrigin.Begin);
-            var fileHeader = new MdlFile.ModelFileHeader
+            var fileHeader = new ModelFileHeader
             {
                 Version = modelBlock.Version,
                 VertexDeclarationCount = modelBlock.VertexDeclarationNum,

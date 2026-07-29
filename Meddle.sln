@@ -7,23 +7,62 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Meddle.Plugin", "Meddle\Med
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meddle.Utils", "Meddle\Meddle.Utils\Meddle.Utils.csproj", "{AF561495-196F-4076-AA2B-0415E7F85B8E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Meddle", "Meddle", "{4FD210D7-9792-CF21-7733-B3BF4A51EED6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meddle.SqPack", "Meddle\Meddle.SqPack\Meddle.SqPack.csproj", "{3991C0B3-9DFD-48FA-AA24-767BF87BB332}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{ABA6105F-84F8-421E-9365-4D19416FC850}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ABA6105F-84F8-421E-9365-4D19416FC850}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Debug|x64.Build.0 = Debug|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Debug|x86.Build.0 = Debug|Any CPU
 		{ABA6105F-84F8-421E-9365-4D19416FC850}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ABA6105F-84F8-421E-9365-4D19416FC850}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Release|x64.ActiveCfg = Release|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Release|x64.Build.0 = Release|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Release|x86.ActiveCfg = Release|Any CPU
+		{ABA6105F-84F8-421E-9365-4D19416FC850}.Release|x86.Build.0 = Release|Any CPU
 		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Debug|x64.Build.0 = Debug|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Debug|x86.Build.0 = Debug|Any CPU
 		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Release|x64.ActiveCfg = Release|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Release|x64.Build.0 = Release|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Release|x86.ActiveCfg = Release|Any CPU
+		{AF561495-196F-4076-AA2B-0415E7F85B8E}.Release|x86.Build.0 = Release|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Debug|x64.Build.0 = Debug|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Debug|x86.Build.0 = Debug|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Release|x64.ActiveCfg = Release|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Release|x64.Build.0 = Release|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Release|x86.ActiveCfg = Release|Any CPU
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3991C0B3-9DFD-48FA-AA24-767BF87BB332} = {4FD210D7-9792-CF21-7733-B3BF4A51EED6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {74A28FFB-AEAB-4FBB-817C-8881B34F4D47}

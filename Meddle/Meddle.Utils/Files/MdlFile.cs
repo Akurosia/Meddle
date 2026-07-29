@@ -1,28 +1,12 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Meddle.SqPack.Structs.Model;
 using Meddle.Utils.Files.Structs.Model;
 
 namespace Meddle.Utils.Files;
 
 public class MdlFile
 {
-    [StructLayout(LayoutKind.Sequential, Size = 68)]
-    public unsafe struct ModelFileHeader
-    {
-        public uint Version;
-        public uint StackSize;
-        public uint RuntimeSize;
-        public ushort VertexDeclarationCount;
-        public ushort MaterialCount;
-        public fixed uint VertexOffset[3];
-        public fixed uint IndexOffset[3];
-        public fixed uint VertexBufferSize[3];
-        public fixed uint IndexBufferSize[3];
-        public byte LodCount;
-        public bool EnableIndexBufferStreaming;
-        public bool EnableEdgeGeometry;
-    }
-
     public enum MdlVersion : uint
     {
         V5 = 0x01000005,

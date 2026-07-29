@@ -1,4 +1,4 @@
-using Dalamud.Plugin.Services;
+﻿using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
@@ -8,7 +8,6 @@ using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 
@@ -18,7 +17,7 @@ public class ResolverService : IService
 {
     private readonly ILogger<ResolverService> logger;
     private readonly LayoutService layoutService;
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly IFramework framework;
     private readonly PbdHooks pbdHooks;
     private readonly SigUtil sigUtil;
@@ -26,7 +25,7 @@ public class ResolverService : IService
     public ResolverService(
         ILogger<ResolverService> logger,
         LayoutService layoutService,
-        SqPack pack,
+        SqPack.SqPack pack,
         IFramework framework,
         PbdHooks pbdHooks,
         SigUtil sigUtil)

@@ -1,4 +1,4 @@
-﻿namespace Meddle.Utils.Files.SqPack;
+﻿namespace Meddle.SqPack;
 
 public record ParsedFilePath
 {
@@ -8,7 +8,7 @@ public record ParsedFilePath
         var pathParts = Path.Split('/');
         var category = pathParts[0];
         var fileName = pathParts[^1];
-        var folder = Path.Substring(0, Path.LastIndexOf('/'));
+        var folder = Path[..Path.LastIndexOf('/')];
         
         var folderHash = SqPack.GetHash(folder);
         var fileHash = SqPack.GetHash(fileName);

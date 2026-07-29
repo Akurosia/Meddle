@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
+using Meddle.SqPack.Structs;
+using Meddle.SqPack.Structs.Index;
 
-namespace Meddle.Utils.Files.SqPack;
+namespace Meddle.SqPack;
 
 public class Category : IDisposable
 {

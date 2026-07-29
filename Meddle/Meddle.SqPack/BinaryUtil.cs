@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Meddle.Utils;
+namespace Meddle.SqPack;
 
 
 public static class BinaryUtil

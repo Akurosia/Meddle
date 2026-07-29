@@ -1,10 +1,8 @@
-﻿using Meddle.Utils.Files.SqPack;
-
-namespace Meddle.Utils.Helpers;
+﻿namespace Meddle.Utils.Helpers;
 
 public static class PathUtil
 {
-    public static byte[]? GetFileOrReadFromDisk(this SqPack pack, string path)
+    public static byte[]? GetFileOrReadFromDisk(this SqPack.SqPack pack, string path)
     {
         path = path.TrimHandlePath();
         

@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Meddle.SqPack;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
 using Meddle.Utils.Files;

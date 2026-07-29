@@ -1,7 +1,7 @@
 ﻿using System.Text;
-using Microsoft.Extensions.Logging;
+using Meddle.SqPack.Structs;
 
-namespace Meddle.Utils.Files.SqPack;
+namespace Meddle.SqPack;
 
 public class SqPack : IDisposable
 {

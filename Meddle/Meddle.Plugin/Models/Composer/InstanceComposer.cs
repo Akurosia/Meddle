@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Meddle.Plugin.Models.Layout;
@@ -8,7 +8,6 @@ using Meddle.Plugin.Utils;
 using Meddle.Utils;
 using Meddle.Utils.Export;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Geometry;
@@ -20,7 +19,7 @@ namespace Meddle.Plugin.Models.Composer;
 
 public class InstanceComposer
 {
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly Configuration.ExportConfiguration exportConfig;
     private readonly string outDir;
     private readonly string cacheDir;
@@ -28,7 +27,7 @@ public class InstanceComposer
     private readonly ComposerCache composerCache;
     
     public InstanceComposer(
-        SqPack pack,
+        SqPack.SqPack pack,
         Configuration.ExportConfiguration exportConfig,
         string outDir,
         CancellationToken cancellationToken)

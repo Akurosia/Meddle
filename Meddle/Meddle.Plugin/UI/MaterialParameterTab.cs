@@ -10,7 +10,6 @@ using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 using CSCharacter = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using Material = FFXIVClientStructs.FFXIV.Client.Graphics.Render.Material;
@@ -25,7 +24,7 @@ public class MaterialParameterTab : ITab
     private readonly Dictionary<string, float[]> mtrlConstantCache = new();
     private readonly CommonUi commonUi;
     private readonly Configuration config;
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
 
     private readonly Dictionary<string, ShpkFile> shpkCache = new();
 
@@ -36,7 +35,7 @@ public class MaterialParameterTab : ITab
     // only show values that are different from the shader default
     private bool onlyShowChanged;
 
-    public MaterialParameterTab(CommonUi commonUi, Configuration config, SqPack pack)
+    public MaterialParameterTab(CommonUi commonUi, Configuration config, SqPack.SqPack pack)
     {
         this.commonUi = commonUi;
         this.config = config;

@@ -1,7 +1,6 @@
 ﻿using Meddle.Plugin.Utils;
 using Meddle.Utils;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 using SkiaSharp;
@@ -17,7 +16,7 @@ public static class ArrayTextureUtil
         return outDir;
     }
     
-    public static void SaveSphereTextures(SqPack pack, string cacheDir)
+    public static void SaveSphereTextures(SqPack.SqPack pack, string cacheDir)
     {
         var outDir = GetOutDir(cacheDir);
         var catchlight = pack.GetFileOrReadFromDisk("chara/common/texture/sphere_d_array.tex");
@@ -35,7 +34,7 @@ public static class ArrayTextureUtil
         SaveAsVerticalArrayTexture(catchLightTex, catchlightOutDir, "sphere_d_array", catchLightTex.Header.CalculatedArraySize);
     }
 
-    public static void SaveTileTextures(SqPack pack, string cacheDir)
+    public static void SaveTileTextures(SqPack.SqPack pack, string cacheDir)
     {
         var outDir = GetOutDir(cacheDir);
         var tileNorm = pack.GetFileOrReadFromDisk("chara/common/texture/tile_norm_array.tex");
@@ -66,7 +65,7 @@ public static class ArrayTextureUtil
         SaveAsVerticalArrayTexture(tileOrbTex, tileOrbOutDir, "tile_orb_array", tileOrbTex.Header.CalculatedArraySize);
     }
     
-    public static void SaveBgSphereTextures(SqPack pack, string cacheDir)
+    public static void SaveBgSphereTextures(SqPack.SqPack pack, string cacheDir)
     {
         var outDir = GetOutDir(cacheDir);
         var catchlight = pack.GetFileOrReadFromDisk("bgcommon/texture/sphere_d_array.tex");
@@ -85,7 +84,7 @@ public static class ArrayTextureUtil
         SaveAsVerticalArrayTexture(catchLightTex, catchlightOutDir, "sphere_d_array", catchLightTex.Header.CalculatedArraySize);
     }
 
-    public static void SaveBgDetailTextures(SqPack pack, string cacheDir)
+    public static void SaveBgDetailTextures(SqPack.SqPack pack, string cacheDir)
     {
         var outDir = GetOutDir(cacheDir);
         var detailD = pack.GetFileOrReadFromDisk("bgcommon/nature/detail/texture/detail_d_array.tex");

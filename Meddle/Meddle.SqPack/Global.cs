@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Meddle.Utils;
+namespace Meddle.SqPack;
 
 public class Global
 {

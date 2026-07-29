@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
@@ -23,7 +23,6 @@ using Meddle.Utils;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Scenes;
@@ -50,7 +49,7 @@ public unsafe class LiveCharacterTab : ITab
     };
 
     private readonly ILogger<LiveCharacterTab> log;
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly PbdHooks pbd;
     private readonly Dictionary<nint, bool> selectedModels = new();
     private readonly TextureCache textureCache;
@@ -71,7 +70,7 @@ public unsafe class LiveCharacterTab : ITab
         TextureCache textureCache,
         ResolverService resolverService,
         StainProvider stainProvider,
-        SqPack pack,
+        SqPack.SqPack pack,
         PbdHooks pbd,
         CommonUi commonUi,
         SigUtil sigUtil,

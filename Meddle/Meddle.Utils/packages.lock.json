@@ -64,6 +64,12 @@
         "type": "Transitive",
         "resolved": "3.119.0",
         "contentHash": "IwC9yx36lOdXVT2DjgmWHl1qkVspfj8ctd4+li8CNnvqdfaTolXCOh6TLznURcPAvzatx9K/tLOB7zT6T8EA9w=="
+      },
+      "meddle.sqpack": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.1, )"
+        }
       }
     }
   }

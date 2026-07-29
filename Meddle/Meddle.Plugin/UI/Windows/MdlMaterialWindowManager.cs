@@ -4,7 +4,6 @@ using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
 using FFXIVClientStructs.Interop;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI.Windows;
@@ -12,7 +11,7 @@ namespace Meddle.Plugin.UI.Windows;
 public class MdlMaterialWindowManager
 {
     private readonly WindowSystem windowSystem;
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly Dictionary<string, MdlMaterialWindow> materialWindows = new();
     private readonly Dictionary<string, ShpkFile> shpkCache = new();
     public ShpkFile GetShpkFile(string path)
@@ -34,7 +33,7 @@ public class MdlMaterialWindowManager
         return shpk;
     }
     
-    public MdlMaterialWindowManager(WindowSystem windowSystem, SqPack pack)
+    public MdlMaterialWindowManager(WindowSystem windowSystem, SqPack.SqPack pack)
     {
         this.windowSystem = windowSystem;
         this.pack = pack;

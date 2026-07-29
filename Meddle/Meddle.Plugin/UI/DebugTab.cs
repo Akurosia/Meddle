@@ -19,7 +19,6 @@ using Meddle.Plugin.UI.Layout;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 using SharpGLTF.Transforms;
 using SkiaSharp;
@@ -37,7 +36,7 @@ public class DebugTab : ITab
     private readonly LayoutService layoutService;
     private readonly PbdHooks pbdHooks;
     private readonly INotificationManager notificationManager;
-    private readonly SqPack sqPack;
+    private readonly SqPack.SqPack sqPack;
     private readonly StainProvider stainProvider;
     private readonly IDataManager dataManager;
     private readonly ComposerFactory composerFactory;
@@ -67,7 +66,7 @@ public class DebugTab : ITab
                     PbdHooks pbdHooks,
                     INotificationManager notificationManager,
                     ITextureProvider textureProvider,
-                    SqPack sqPack,
+                    SqPack.SqPack sqPack,
                     StainProvider stainProvider,
                     IDataManager dataManager,
                     ComposerFactory composerFactory)

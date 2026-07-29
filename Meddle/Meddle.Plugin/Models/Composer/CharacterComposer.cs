@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Meddle.Plugin.Models.Layout;
@@ -7,7 +7,6 @@ using Meddle.Plugin.Utils;
 using Meddle.Utils;
 using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
-using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Materials;
 using SharpGLTF.Scenes;
@@ -32,7 +31,7 @@ public class CharacterComposer
         this.cancellationToken = cancellationToken;
     }
     
-    public CharacterComposer(SqPack pack, Configuration.ExportConfiguration exportConfig, string outDir, CancellationToken cancellationToken)
+    public CharacterComposer(SqPack.SqPack pack, Configuration.ExportConfiguration exportConfig, string outDir, CancellationToken cancellationToken)
     {
         this.exportConfig = exportConfig;
         this.cancellationToken = cancellationToken;

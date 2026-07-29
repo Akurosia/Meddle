@@ -1,7 +1,9 @@
 ﻿using System.IO.Compression;
 using System.Runtime.CompilerServices;
+using Meddle.SqPack.Structs;
+using Meddle.SqPack.Structs.Index;
 
-namespace Meddle.Utils.Files.SqPack;
+namespace Meddle.SqPack;
 
 public class SqPackFile
 {
