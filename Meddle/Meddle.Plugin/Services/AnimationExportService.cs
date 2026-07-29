@@ -13,7 +13,6 @@ using SharpGLTF.Geometry;
 using SharpGLTF.Geometry.VertexTypes;
 using SharpGLTF.Materials;
 using SharpGLTF.Scenes;
-using SharpGLTF.Transforms;
 
 namespace Meddle.Plugin.Services;
 

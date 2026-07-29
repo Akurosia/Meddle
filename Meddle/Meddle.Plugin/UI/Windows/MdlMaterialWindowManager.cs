@@ -4,9 +4,6 @@ using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
 using FFXIVClientStructs.Interop;
 using Meddle.Formats.Files;
 using Meddle.Formats.Helpers;
-using Meddle.Plugin.Utils;
-using Meddle.Utils.Files;
-using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI.Windows;
 

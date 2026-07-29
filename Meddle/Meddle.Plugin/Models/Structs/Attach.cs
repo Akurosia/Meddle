@@ -3,7 +3,6 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Havok.Common.Base.Math.QsTransform;
 using FFXIVClientStructs.Interop;
-using Meddle.Plugin.Models;
 
 namespace Meddle.Plugin.Models.Structs;
 

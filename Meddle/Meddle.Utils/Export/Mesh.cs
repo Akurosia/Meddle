@@ -1,6 +1,5 @@
 ﻿using Meddle.Formats;
 using Meddle.Formats.Files.MdlFile;
-using Meddle.Utils.Files;
 
 namespace Meddle.Utils.Export;
 

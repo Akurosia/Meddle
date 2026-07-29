@@ -1,5 +1,4 @@
-﻿using Dalamud.Game;
-using Dalamud.Hooking;
+﻿using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Microsoft.Extensions.Logging;
 

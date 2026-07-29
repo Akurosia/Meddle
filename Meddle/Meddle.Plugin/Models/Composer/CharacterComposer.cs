@@ -10,7 +10,6 @@ using Meddle.Utils.Export;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Materials;
 using SharpGLTF.Scenes;
-using SharpGLTF.Transforms;
 
 namespace Meddle.Plugin.Models.Composer;
 public class CharacterComposer

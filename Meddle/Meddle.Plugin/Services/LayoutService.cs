@@ -20,7 +20,6 @@ using Object = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Object;
 using ObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 using OutdoorPlotFixtureData = Meddle.Plugin.Models.Structs.Outdoor.OutdoorPlotFixtureData;
 using OutdoorPlotLayoutData = Meddle.Plugin.Models.Structs.Outdoor.OutdoorPlotLayoutData;
-using SharedGroupResourceHandle = Meddle.Plugin.Models.Structs.SharedGroupResourceHandle;
 using Transform = Meddle.Plugin.Models.Transform;
 
 namespace Meddle.Plugin.Services;

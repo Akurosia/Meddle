@@ -11,7 +11,6 @@ using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Composer;
 using Meddle.Plugin.Models.Skeletons;
 using Meddle.Plugin.UI.Layout;
-using Meddle.Utils.Files.Structs.Material;
 using SharpGLTF.Transforms;
 using CustomizeData = Meddle.Utils.Export.CustomizeData;
 using CustomizeParameter = Meddle.Utils.Export.CustomizeParameter;

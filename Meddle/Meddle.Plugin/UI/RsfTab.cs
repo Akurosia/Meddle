@@ -1,9 +1,6 @@
-﻿using System.Numerics;
-using System.Reflection;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.Interop;

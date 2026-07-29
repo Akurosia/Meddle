@@ -9,9 +9,7 @@ using Meddle.Formats.Files.MtrlFile;
 using Meddle.Formats.Helpers;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Layout;
-using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Files;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 

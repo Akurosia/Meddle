@@ -5,11 +5,8 @@ using Meddle.Formats.Files;
 using Meddle.Formats.Helpers;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Structs;
-using Meddle.Plugin.Services;
 using Meddle.Plugin.UI.Windows;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Files;
-using Meddle.Utils.Helpers;
 
 namespace Meddle.Plugin.UI;
 

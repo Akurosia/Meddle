@@ -3,7 +3,6 @@ using System.Numerics;
 using System.Reflection;
 using Dalamud.Interface.Windowing;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
 
 namespace Meddle.Plugin.UI.Windows;

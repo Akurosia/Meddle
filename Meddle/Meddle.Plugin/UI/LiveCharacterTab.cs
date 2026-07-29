@@ -24,7 +24,6 @@ using Meddle.Plugin.UI.Windows;
 using Meddle.Plugin.Utils;
 using Meddle.Utils;
 using Meddle.Utils.Export;
-using Meddle.Utils.Files;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Scenes;

@@ -1,7 +1,6 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Meddle.Plugin.Services;
-using Meddle.Plugin.Utils;
 using Meddle.SqPack;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

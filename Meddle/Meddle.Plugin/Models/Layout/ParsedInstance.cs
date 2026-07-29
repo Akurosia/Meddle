@@ -16,8 +16,6 @@ using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
 using Meddle.Utils.Export;
-using Meddle.Utils.Files;
-using Meddle.Utils.Files.Structs.Material;
 using CustomizeData = Meddle.Utils.Export.CustomizeData;
 using CustomizeParameter = Meddle.Utils.Export.CustomizeParameter;
 

@@ -6,7 +6,6 @@ using Meddle.Formats.Constants;
 using Meddle.Formats.Files;
 using Meddle.SqPack;
 using Meddle.Utils.Export;
-using Meddle.Utils.Files;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Geometry;
 using SharpGLTF.Geometry.VertexTypes;

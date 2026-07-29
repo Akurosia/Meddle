@@ -1,7 +1,4 @@
 ﻿using System.Numerics;
-using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using SharpGLTF.Transforms;
 
 namespace Meddle.Plugin.Utils;

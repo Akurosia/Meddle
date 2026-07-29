@@ -4,7 +4,6 @@ using FFXIVClientStructs.Havok.Common.Base.Math.QsTransform;
 using FFXIVClientStructs.Havok.Common.Base.Math.Quaternion;
 using FFXIVClientStructs.Havok.Common.Base.Math.Vector;
 using Meddle.SqPack;
-using Meddle.Utils;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Transforms;
 using CSTransform = FFXIVClientStructs.FFXIV.Client.Graphics.Transform;

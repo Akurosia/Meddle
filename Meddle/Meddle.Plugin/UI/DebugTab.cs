@@ -20,7 +20,6 @@ using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.UI.Layout;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Files;
 using Meddle.Utils.Helpers;
 using SharpGLTF.Transforms;
 using SkiaSharp;

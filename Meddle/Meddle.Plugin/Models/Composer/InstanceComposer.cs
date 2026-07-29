@@ -10,8 +10,6 @@ using Meddle.Plugin.UI.Layout;
 using Meddle.Plugin.Utils;
 using Meddle.Utils;
 using Meddle.Utils.Export;
-using Meddle.Utils.Files;
-using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Geometry;
 using SharpGLTF.Geometry.VertexTypes;
