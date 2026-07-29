@@ -154,8 +154,7 @@ public class AnimationExportService : IDisposable, IService
                         localRotation = SkeletonUtils.HemisphereAlign(localRotation, lastLoc.Rot);
                     }
 
-                    // Hold the previous placement until just before an attach-point switch, so the
-                    // switch is a step instead of a lerp across the whole inter-sample gap.
+                    // Hold until an attach switch so blender try to lerp between the last deduplicated point
                     var attachPoint = (attach.Attach.ExecuteType, attach.AttachBoneName);
                     if (lastAttachPoint != null && lastAttachPoint.Value != attachPoint && lastAbsoluteSample != null)
                     {
