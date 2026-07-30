@@ -261,7 +261,7 @@ public class ResolverService : IService
 
         foreach (var weapon in character->DrawData.WeaponData)
         {
-            var weaponInfo = ParseMaterialUtil.ParseDrawObject(weapon.DrawObject, pbdHooks);
+            var weaponInfo = ParseMaterialUtil.ParseDrawObject(weapon.DrawData.DrawObject, pbdHooks);
             if (weaponInfo != null)
             {
                 attaches.Add(weaponInfo);

@@ -586,14 +586,14 @@ public class DebugTab : ITab
         for (int i = 0; i < weapons.Length; i++)
         {
             var weapon = weapons[i];
-            if (weapon.DrawObject != null)
+            if (weapon.DrawData.DrawObject != null)
             {
-                ImGui.Text($"Weapon {i} DrawObject Address: {(nint)weapon.DrawObject:X8}");
-                var weaponType = weapon.DrawObject->GetObjectType();
+                ImGui.Text($"Weapon {i} DrawObject Address: {(nint)weapon.DrawData.DrawObject:X8}");
+                var weaponType = weapon.DrawData.DrawObject->GetObjectType();
                 ImGui.Text($"Weapon {i} Object Type: {weaponType}");
                 if (weaponType == ObjectType.CharacterBase)
                 {
-                    var weaponBase = (CharacterBase*)weapon.DrawObject;
+                    var weaponBase = (CharacterBase*)weapon.DrawData.DrawObject;
                     DrawCharacterBase(weaponBase, $"Weapon {i}");
                 }
             }

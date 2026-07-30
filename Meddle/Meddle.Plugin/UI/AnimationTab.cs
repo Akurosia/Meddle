@@ -305,9 +305,9 @@ public class AnimationTab : ITab
         for (var i = 0; i < weaponData.Length; ++i)
         {
             var weapon = weaponData[i];
-            if (weapon.DrawObject != null && weapon.DrawObject->GetObjectType() == ObjectType.CharacterBase)
+            if (weapon.DrawData.DrawObject != null && weapon.DrawData.DrawObject->GetObjectType() == ObjectType.CharacterBase)
             {
-                var weaponBase = (CharacterBase*)weapon.DrawObject;
+                var weaponBase = (CharacterBase*)weapon.DrawData.DrawObject;
                 var weaponAttach = StructExtensions.GetParsedAttach(weaponBase);                    
                 attachments.Add(new AttachSet($"{(nint)weaponBase:X8}", $"Weapon{i}_{actorName}", weaponAttach, StructExtensions.GetParsedSkeleton(weaponBase), GetTransform(weaponBase), ownerId));
             }

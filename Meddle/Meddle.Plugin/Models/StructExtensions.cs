@@ -87,8 +87,8 @@ public static class StructExtensions
 
         foreach (var weapon in character->DrawData.WeaponData)
         {
-            if (weapon.DrawObject != null)
-                known.Add((nint)weapon.DrawObject);
+            if (weapon.DrawData.DrawObject != null)
+                known.Add((nint)weapon.DrawData.DrawObject);
         }
 
         if (character->Mount.MountObject != null)

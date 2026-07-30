@@ -15,7 +15,7 @@ public class TerrainDebugTab : ITab
     private readonly SigUtil sigUtil;
     private readonly MdlMaterialWindowManager mdlMaterialWindowManager;
     private readonly SqPack.SqPack pack;
-    private Dictionary<string, object?> fileCache = new Dictionary<string, object>();
+    private Dictionary<string, object> fileCache = new();
     public TerrainDebugTab(SigUtil sigUtil, 
                            MdlMaterialWindowManager mdlMaterialWindowManager, SqPack.SqPack pack)
     {

@@ -505,7 +505,7 @@ public static class UiUtil
         var weaponData = drawDataContainer.WeaponData;
         foreach (var weapon in weaponData)
         {
-            var weaponDrawObject = weapon.DrawObject;
+            var weaponDrawObject = weapon.DrawData.DrawObject;
             if (weaponDrawObject == null)
             {
                 continue;
