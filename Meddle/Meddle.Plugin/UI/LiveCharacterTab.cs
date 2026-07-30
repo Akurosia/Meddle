@@ -192,7 +192,7 @@ public unsafe class LiveCharacterTab : ITab
             for (var weaponIdx = 0; weaponIdx < character->DrawData.WeaponData.Length; weaponIdx++)
             {
                 var weaponData = character->DrawData.WeaponData[weaponIdx];
-                if (weaponData.DrawData.DrawObject != null && weaponData.IsHidden == false)
+                if (weaponData.DrawData.DrawObject != null)
                 {
                     ImGui.Separator();
                     ImGui.Text($"Weapon {weaponIdx}");
