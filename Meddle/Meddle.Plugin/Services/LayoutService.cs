@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using BgObject = Meddle.Plugin.Models.Structs.BgObject;
 using Camera = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Camera;
 using HousingFurniture = FFXIVClientStructs.FFXIV.Client.Game.HousingFurniture;
+using LightLayoutInstance = Meddle.Plugin.Models.Structs.LightLayoutInstance;
 using Object = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Object;
 using ObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 using OutdoorPlotFixtureData = Meddle.Plugin.Models.Structs.Outdoor.OutdoorPlotFixtureData;
