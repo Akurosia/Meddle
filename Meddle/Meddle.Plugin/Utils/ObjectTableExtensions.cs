@@ -89,5 +89,12 @@ public static class ObjectTableExtensions
 
             return true;
         }
+
+        public bool IsSelectable(IObjectTable table, CharacterValidationFlags flags = CharacterValidationFlags.None)
+        {
+            return table.LocalPlayer != null
+                ? character.IsValidCharacterBase(flags)
+                : character.IsValidHuman(flags);
+        }
     }
 }

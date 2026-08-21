@@ -5,7 +5,7 @@ namespace Meddle.Formats.Files;
 
 public class PapFile
 {
-    public const uint PapMagic = 0x70617020; // "pap "
+    public const uint PapMagic = 0x20706170; // "pap "
     public PapFileHeader FileHeader;
     public PapAnimation[] Animations;
     
@@ -24,13 +24,14 @@ public class PapFile
         Animations = reader.Read<PapAnimation>(FileHeader.AnimationCount).ToArray();
     }
 
+    [StructLayout(LayoutKind.Sequential, Size = 40)]
     public unsafe struct PapAnimation
     {
         public fixed byte Name[32];
         public ushort Type;
         public short HavokIndex;
         public bool IsFace;
-        
+
         public string GetName => GetNameString();
         
         private string GetNameString()

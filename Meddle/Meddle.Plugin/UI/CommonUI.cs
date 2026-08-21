@@ -89,7 +89,7 @@ public class CommonUi : IDisposable, IService
         // remove entries which cannot be found in the object table
         foreach (var character in selectedCharacters.ToArray())
         {
-            if (!character.IsValidCharacterBase())
+            if (!character.IsSelectable(objectTable))
             {
                 selectedCharacters.Remove(character);
             }
@@ -175,15 +175,15 @@ public class CommonUi : IDisposable, IService
     
     public unsafe string GetCharacterDisplayText(IGameObject obj, bool includeDistance, bool includeId)
     {
-        if (!obj.IsValid())
-        {
-            return $"Invalid Object";
-        }
-        
-        string suffix = includeId 
-            ? $"##{obj.Address}" 
+        string suffix = includeId
+            ? $"##{obj.Address}"
             : string.Empty;
-        
+
+        if (obj.Address == nint.Zero)
+        {
+            return $"Invalid Object{suffix}";
+        }
+
         var drawObject = ((GameObject*)obj.Address)->DrawObject;
         if (drawObject == null)
             return $"Invalid Character{suffix}";
@@ -199,20 +199,22 @@ public class CommonUi : IDisposable, IService
         {
             name = config.PlayerNameOverride;
         }
-        
-        string prefix = config.DisplayDebugInfo 
-            ? $"[{obj.Address:X8}:{(nint)characterBase:X8}:{obj.GameObjectId:X}]" 
+
+        string prefix = config.DisplayDebugInfo
+            ? $"[{obj.Address:X8}:{(nint)characterBase:X8}:{obj.GameObjectId:X}]"
             : string.Empty;
-        
-        
+
+
         string distanceText = includeDistance
             ? $" - {objectTable.GetDistanceToLocalPlayer(obj).Length():0}y"
             : string.Empty;
-        
+
+        string visibilityText = drawObject->IsVisible ? string.Empty : " (not visible)";
+
         return
             $"{prefix}[{obj.ObjectKind}][{modelType}] - " +
             $"{(string.IsNullOrWhiteSpace(name) ? "Unnamed" : name)}" +
-            $"{distanceText}{suffix}";
+            $"{distanceText}{visibilityText}{suffix}";
     }
 
     public void Dispose()

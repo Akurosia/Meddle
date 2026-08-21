@@ -9,9 +9,6 @@ using Meddle.Plugin.UI;
 using Meddle.Plugin.Utils;
 using Meddle.Utils;
 using Microsoft.Extensions.Logging;
-using SharpGLTF.Geometry;
-using SharpGLTF.Geometry.VertexTypes;
-using SharpGLTF.Materials;
 using SharpGLTF.Scenes;
 
 namespace Meddle.Plugin.Services;
@@ -29,11 +26,7 @@ public class AnimationExportService : IDisposable, IService
     {
         logger.LogDebug("Disposing ExportUtil");
     }
-
-    // Exports three glTF files per attach set (actor, weapon, ornament ...):
-    //   *_skeleton.glb - bone-local pose keyframes (skinned dummy mesh carries the armature)
-    //   *_absolute.glb - object placement in world space, one animated node
-    //   *_local.glb    - object placement relative to the capture's first frame
+    
     public void ExportAnimation(
         List<(DateTime, AttachSet[])> frames,
         AnimationExportSettings settings,
@@ -45,9 +38,7 @@ public class AnimationExportService : IDisposable, IService
             var startTime = frames.Min(x => x.Item1);
             var folder = settings.Path;
             Directory.CreateDirectory(folder);
-            // Frames indexed by time so an attach can find its owner's AttachSet in the same frame.
             var frameLookup = frames.ToDictionary(f => f.Item1, f => f.Item2);
-            // Owner bone maps are structure-only (poses read per frame), so build once per owner.
             var ownerBoneCache = new Dictionary<string, (List<BoneNodeBuilder> Bones, BoneNodeBuilder? Root)>();
             foreach (var (id, (bones, root, timeline)) in boneSets)
             {
@@ -55,15 +46,13 @@ public class AnimationExportService : IDisposable, IService
                 if (root == null) throw new InvalidOperationException("Root bone not found");
                 logger.LogInformation("Adding bone set {Id}", id);
 
-                // Skeleton file: bone-local pose animation only, no root motion.
                 var skeletonScene = new SceneBuilder();
                 var skeletonRootNode = new NodeBuilder(id) { Extras = MakeExtras("Skeleton") };
                 skeletonRootNode.AddNode(root);
                 skeletonScene.AddNode(skeletonRootNode);
-                skeletonScene.AddSkinnedMesh(GetDummyMesh(), Matrix4x4.Identity, bones.Cast<NodeBuilder>().ToArray());
+                skeletonScene.AddSkinnedMesh(DummyMesh.Create(), Matrix4x4.Identity, bones.Cast<NodeBuilder>().ToArray());
                 SaveScene(skeletonScene, folder, id, "skeleton");
 
-                // Position files: one animated node each, placement independent of the bone poses.
                 var absoluteRoot = new NodeBuilder($"{id}_absolute") { Extras = MakeExtras("AbsolutePosition") };
                 var localRoot = new NodeBuilder($"{id}_local") { Extras = MakeExtras("LocalPosition") };
 
@@ -83,8 +72,6 @@ public class AnimationExportService : IDisposable, IService
                     var scale = attach.Transform.Scale;
                     var time = SkeletonUtils.TotalSeconds(frameTime, startTime);
 
-                    // Attached items: place at the owner attach-bone's world transform (matching the
-                    // static exporter; the attach's OffsetTransform lives on its root bone instead).
                     if (attach is { OwnerId: not null, AttachBoneName: not null, Attach.OwnerSkeleton: not null } &&
                         frameLookup.TryGetValue(frameTime, out var siblingAttaches))
                     {
@@ -197,18 +184,14 @@ public class AnimationExportService : IDisposable, IService
         node.UseScale().UseTrackBuilder("pose").WithPoint(time, sample.Scale);
     }
 
-    // Delta that satisfies delta * start == current (row-vector convention), so MeddleTools can
-    // compose it onto the target's own starting placement (matrix_world = initial @ wrapper).
     private static Matrix4x4 ComputeLocalDelta(
         Vector3 startScale, Quaternion startRot, Vector3 startPos,
         Vector3 scale, Quaternion rot, Vector3 pos)
     {
-        // Transform's sanitization guards against degenerate captured frames (zero scale, non-finite).
         var startMatrix = SkeletonUtils.ToMatrix(new Transform(startPos, startRot, startScale).AffineTransform);
         var currentMatrix = SkeletonUtils.ToMatrix(new Transform(pos, rot, scale).AffineTransform);
         if (Matrix4x4.Invert(startMatrix, out var startInverse))
         {
-            // Order matters: Inverse(start) * current swings unboundedly with the current rotation.
             var delta = currentMatrix * startInverse;
             if (IsValidAffineMatrix(delta))
             {
@@ -221,7 +204,6 @@ public class AnimationExportService : IDisposable, IService
             return currentMatrix;
         }
 
-        // CreateTranslation is structurally affine no matter how bad the captured TRS was.
         return Matrix4x4.CreateTranslation(pos);
     }
 
@@ -233,8 +215,6 @@ public class AnimationExportService : IDisposable, IService
                MathF.Abs(m.M44 - 1f) < epsilon;
     }
 
-    // Snap the last column to exactly (0,0,0,1) - SharpGLTF's AffineTransform ctor rejects even
-    // one ULP of float error, routine after Invert/multiply on world-scale translations.
     private static Matrix4x4 SnapAffine(Matrix4x4 m)
     {
         m.M14 = 0f;
@@ -283,33 +263,5 @@ public class AnimationExportService : IDisposable, IService
         var sceneGraph = scene.ToGltf2();
         var outputPath = Path.Combine(folder, $"motion_{id}_{kind}.glb");
         sceneGraph.SaveGLB(outputPath);
-    }
-
-    // https://github.com/0ceal0t/Dalamud-VFXEditor/blob/be00131b93b3c6dd4014a4f27c2661093daf3a85/VFXEditor/Utils/Gltf/GltfSkeleton.cs#L132
-    public static MeshBuilder<VertexPosition, VertexEmpty, VertexJoints4> GetDummyMesh(string name = "DUMMY_MESH")
-    {
-        var dummyMesh = new MeshBuilder<VertexPosition, VertexEmpty, VertexJoints4>(name);
-        var material = new MaterialBuilder("material");
-
-        var p1 = new VertexPosition
-        {
-            Position = new Vector3(0.000001f, 0, 0)
-        };
-        var p2 = new VertexPosition
-        {
-            Position = new Vector3(0, 0.000001f, 0)
-        };
-        var p3 = new VertexPosition
-        {
-            Position = new Vector3(0, 0, 0.000001f)
-        };
-
-        dummyMesh.UsePrimitive(material).AddTriangle(
-            (p1, new VertexEmpty(), new VertexJoints4(0)),
-            (p2, new VertexEmpty(), new VertexJoints4(0)),
-            (p3, new VertexEmpty(), new VertexJoints4(0))
-        );
-
-        return dummyMesh;
     }
 }

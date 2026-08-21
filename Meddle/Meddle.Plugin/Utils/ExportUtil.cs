@@ -10,7 +10,7 @@ namespace Meddle.Plugin.Utils;
 
 public static class ExportUtil
 {
-    private static readonly WriteSettings WriteSettings = new WriteSettings
+    internal static readonly WriteSettings WriteSettings = new WriteSettings
     {
         Validation = ValidationMode.TryFix,
         JsonIndented = false,

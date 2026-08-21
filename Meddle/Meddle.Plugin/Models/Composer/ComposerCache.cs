@@ -22,7 +22,8 @@ public class ComposerCache
     private readonly ConcurrentDictionary<string, string> mtrlPathCache = new();
     private readonly ConcurrentDictionary<string, PbdFile> pbdCache = new();
     private readonly ConcurrentDictionary<string, RefCounter<MdlFile>> mdlCache = new();
-    
+    private readonly ConcurrentDictionary<string, byte> sklbCache = new();
+
     private sealed class RefCounter<T>(T obj)
     {
         public T Object { get; } = obj;
@@ -201,6 +202,34 @@ public class ComposerCache
         return cachePath;
     }
     
+    public void CacheSklb(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+        if (!exportConfig.CacheFileTypes.HasFlag(CacheFileType.Sklb)) return;
+        if (!sklbCache.TryAdd(path, 0)) return;
+
+        try
+        {
+            var data = pack.GetFileOrReadFromDisk(path);
+            if (data == null)
+            {
+                Plugin.Logger.LogWarning("Failed to load sklb file: {Path}", path);
+                return;
+            }
+
+            var cachePath = GetCacheFilePath(path);
+            Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
+            if (!File.Exists(cachePath))
+            {
+                File.WriteAllBytes(cachePath, data);
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError(e, "Failed to cache sklb for {Path}", path);
+        }
+    }
+
     public string CacheTexture(string fullPath)
     {
         var cachePath = GetCacheFilePath(fullPath);

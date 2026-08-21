@@ -379,6 +379,14 @@ public class CharacterComposer
 
     private (List<BoneNodeBuilder> bones, BoneNodeBuilder root)? ComposeCharacterInfo(ComposeContext ctx, ParsedCharacterInfo characterInfo, AttachContext? attachData, ExportProgress rootProgress)
     {
+        foreach (var partialSkeleton in characterInfo.Skeleton.PartialSkeletons)
+        {
+            if (partialSkeleton.HandlePath != null)
+            {
+                composerCache.CacheSklb(partialSkeleton.HandlePath);
+            }
+        }
+
         List<BoneNodeBuilder> bones;
         BoneNodeBuilder? rootBone;
         try

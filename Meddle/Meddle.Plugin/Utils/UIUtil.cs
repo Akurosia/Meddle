@@ -20,6 +20,13 @@ namespace Meddle.Plugin.Utils;
 
 public static class UiUtil
 {
+    // Slot indices per ActionTimelineSequencer's own doc comment.
+    public static readonly string[] TimelineSlotNames =
+    [
+        "Base", "UpperBody", "Facial", "Add", "Slot4", "Slot5", "Slot6",
+        "Lips", "Parts1", "Parts2", "Parts3", "Parts4", "Overlay"
+    ];
+
     public static void Text(string text, string? copyValue)
     {
         ImGui.Text(text);

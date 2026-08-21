@@ -4,10 +4,10 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Folder Name="/Meddle/">
+  <Folder Name="/Lib/">
     <Project Path="Meddle/Meddle.Formats/Meddle.Formats.csproj" />
     <Project Path="Meddle/Meddle.SqPack/Meddle.SqPack.csproj" />
+    <Project Path="Meddle/Meddle.Utils/Meddle.Utils.csproj" />
   </Folder>
   <Project Path="Meddle/Meddle.Plugin/Meddle.Plugin.csproj" />
-  <Project Path="Meddle/Meddle.Utils/Meddle.Utils.csproj" />
 </Solution>

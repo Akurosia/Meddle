@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace Meddle.Plugin.Models;
 
@@ -37,7 +37,9 @@ public enum CacheFileType
     [Description(".shpk")]
     Shpk = 8,
     [Description(".pbd")]
-    Pbd = 16
+    Pbd = 16,
+    [Description(".sklb")]
+    Sklb = 32
 }
 
 public enum HumanModelSlotIndex
