@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Text.RegularExpressions;
-using Meddle.Utils.Constants;
-using Meddle.Utils.Files;
+using Meddle.Formats.Constants;
+using Meddle.Formats.Files;
 
 namespace Meddle.Utils;
 

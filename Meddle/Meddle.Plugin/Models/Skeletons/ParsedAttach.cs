@@ -10,7 +10,7 @@ public unsafe class ParsedAttach
         ExecuteType = 0;
         AttachmentCount = 0;
     }
-    
+
     public ParsedAttach(Attach attach)
     {
         // 0 => Root
@@ -87,11 +87,11 @@ public unsafe class ParsedAttach
         }
     }
 
-    public int AttachmentCount { get; }
-    public int ExecuteType { get; }
-    public ParsedSkeleton? TargetSkeleton { get; }
-    public ParsedSkeleton? OwnerSkeleton { get; }
-    public Transform? OffsetTransform { get; }
-    public byte PartialSkeletonIdx { get; }
-    public uint BoneIdx { get; }
+    public int AttachmentCount { get; init; }
+    public int ExecuteType { get; init; }
+    public ParsedSkeleton? TargetSkeleton { get; init; }
+    public ParsedSkeleton? OwnerSkeleton { get; init; }
+    public Transform? OffsetTransform { get; init; }
+    public byte PartialSkeletonIdx { get; init; }
+    public uint BoneIdx { get; init; }
 }

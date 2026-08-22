@@ -1,4 +1,4 @@
-﻿using Meddle.Utils.Files.Structs.Model;
+﻿using Meddle.Formats.Files.MdlFile;
 
 namespace Meddle.Utils.Export;
 

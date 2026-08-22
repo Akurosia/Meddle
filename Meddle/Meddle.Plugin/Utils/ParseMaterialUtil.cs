@@ -6,14 +6,14 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Interop;
 using Lumina.Excel.Sheets;
+using Meddle.Formats;
+using Meddle.Formats.Constants;
+using Meddle.Formats.Files;
+using Meddle.Formats.Files.MtrlFile;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Services;
-using Meddle.Utils;
-using Meddle.Utils.Constants;
-using Meddle.Utils.Files;
-using Meddle.Utils.Files.Structs.Material;
 using Meddle.Utils.Helpers;
 using CustomizeData = Meddle.Utils.Export.CustomizeData;
 

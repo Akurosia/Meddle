@@ -1,11 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using Meddle.Formats;
+using Meddle.Formats.Files;
+using Meddle.Formats.Files.MdlFile;
+using Meddle.Formats.Files.MtrlFile;
+using Meddle.Formats.Helpers;
 using Meddle.Plugin.Models.Layout;
-using Meddle.Plugin.Utils;
 using Meddle.Utils;
-using Meddle.Utils.Constants;
-using Meddle.Utils.Export;
-using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Files.Structs.Material;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
@@ -22,18 +22,19 @@ public class ComposerCache
     private readonly ConcurrentDictionary<string, string> mtrlPathCache = new();
     private readonly ConcurrentDictionary<string, PbdFile> pbdCache = new();
     private readonly ConcurrentDictionary<string, RefCounter<MdlFile>> mdlCache = new();
-    
+    private readonly ConcurrentDictionary<string, byte> sklbCache = new();
+
     private sealed class RefCounter<T>(T obj)
     {
         public T Object { get; } = obj;
         public DateTime LastAccess { get; set; } = DateTime.UtcNow;
     }
     
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly string cacheDir;
     private readonly Configuration.ExportConfiguration exportConfig;
 
-    public ComposerCache(SqPack pack, string cacheDir, Configuration.ExportConfiguration exportConfig)
+    public ComposerCache(SqPack.SqPack pack, string cacheDir, Configuration.ExportConfiguration exportConfig)
     {
         this.pack = pack;
         this.cacheDir = cacheDir;
@@ -201,6 +202,34 @@ public class ComposerCache
         return cachePath;
     }
     
+    public void CacheSklb(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+        if (!exportConfig.CacheFileTypes.HasFlag(CacheFileType.Sklb)) return;
+        if (!sklbCache.TryAdd(path, 0)) return;
+
+        try
+        {
+            var data = pack.GetFileOrReadFromDisk(path);
+            if (data == null)
+            {
+                Plugin.Logger.LogWarning("Failed to load sklb file: {Path}", path);
+                return;
+            }
+
+            var cachePath = GetCacheFilePath(path);
+            Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
+            if (!File.Exists(cachePath))
+            {
+                File.WriteAllBytes(cachePath, data);
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError(e, "Failed to cache sklb for {Path}", path);
+        }
+    }
+
     public string CacheTexture(string fullPath)
     {
         var cachePath = GetCacheFilePath(fullPath);

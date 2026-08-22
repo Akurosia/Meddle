@@ -1,13 +1,12 @@
 ﻿using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Meddle.Formats.Constants;
 using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Models.Skeletons;
 using Meddle.Plugin.Utils;
 using Meddle.Utils;
-using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
-using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 using SharpGLTF.Materials;
 using SharpGLTF.Scenes;
@@ -16,7 +15,9 @@ namespace Meddle.Plugin.Models.Composer;
 public class CharacterComposer
 {
     public record SkinningContext(List<BoneNodeBuilder> Bones, BoneNodeBuilder? RootBone, Matrix4x4 Transform);
-    
+    private sealed record ComposeContext(SceneBuilder Scene, NodeBuilder Root, Matrix4x4 InstanceWorldTransform);
+    private readonly record struct AttachContext(ParsedCharacterInfo Owner, List<BoneNodeBuilder> OwnerBones, ParsedAttach Attach);
+
     private readonly ComposerCache composerCache;
     private readonly Configuration.ExportConfiguration exportConfig;
     private readonly CancellationToken cancellationToken;
@@ -29,7 +30,7 @@ public class CharacterComposer
         this.cancellationToken = cancellationToken;
     }
     
-    public CharacterComposer(SqPack pack, Configuration.ExportConfiguration exportConfig, string outDir, CancellationToken cancellationToken)
+    public CharacterComposer(SqPack.SqPack pack, Configuration.ExportConfiguration exportConfig, string outDir, CancellationToken cancellationToken)
     {
         this.exportConfig = exportConfig;
         this.cancellationToken = cancellationToken;
@@ -210,7 +211,7 @@ public class CharacterComposer
     private int attachSuffix;
     private readonly object attachLock = new();
 
-    private bool HandleAttach((ParsedCharacterInfo Owner, List<BoneNodeBuilder> OwnerBones, ParsedAttach Attach) attachData, SceneBuilder scene, BoneNodeBuilder rootBone, ref Matrix4x4 transform)
+    private bool HandleAttach(ComposeContext ctx, AttachContext attachData, BoneNodeBuilder rootBone, ref Matrix4x4 transform)
     {
         bool rootParented;
         var attach = attachData.Attach;
@@ -218,10 +219,13 @@ public class CharacterComposer
         var attachName = attachData.Owner.Skeleton.PartialSkeletons[attach.PartialSkeletonIdx]
                                    .HkSkeleton!.BoneNames[(int)attach.BoneIdx];
         Plugin.Logger.LogInformation("Attaching {AttachName} to {RootBone}", attachName, rootBone.BoneName);
-        lock (attachLock)
+        if (!exportConfig.ExportAttachesAsSeparateObjects)
         {
-            Interlocked.Increment(ref attachSuffix);
-            rootBone.SetSuffixRecursively(attachSuffix);
+            lock (attachLock)
+            {
+                Interlocked.Increment(ref attachSuffix);
+                rootBone.SetSuffixRecursively(attachSuffix);
+            }
         }
 
         if (attach.OffsetTransform is { } ct)
@@ -239,9 +243,17 @@ public class CharacterComposer
 
         var attachPointBone = attachData.OwnerBones.FirstOrDefault(
                 x => x.BoneName.Equals(attachName, StringComparison.Ordinal));
-        if (attachPointBone == null)
+        if (exportConfig.ExportAttachesAsSeparateObjects)
         {
-            scene.AddNode(rootBone);
+            var attachRoot = new NodeBuilder($"Attach-{ctx.Root.Name}-{attachName}");
+            attachRoot.LocalMatrix = SkeletonUtils.ComputeBoneWorldMatrix(attachPointBone, attachData.Owner.Skeleton, ctx.InstanceWorldTransform, ctx.Root);
+            ctx.Scene.AddNode(attachRoot);
+            attachRoot.AddNode(rootBone);
+            rootParented = true;
+        }
+        else if (attachPointBone == null)
+        {
+            ctx.Scene.AddNode(rootBone);
             rootParented = true;
         }
         else
@@ -256,14 +268,13 @@ public class CharacterComposer
             transform *= c.LocalMatrix;
             c = c.Parent;
         }
-        
+
         return rootParented;
     }
 
     private bool HandleRootAttach(
+        ComposeContext ctx,
         ParsedCharacterInfo characterInfo,
-        SceneBuilder scene,
-        NodeBuilder root,
         ref BoneNodeBuilder rootBone,
         ref Matrix4x4 transform,
         ExportProgress rootProgress)
@@ -282,7 +293,7 @@ public class CharacterComposer
             rootProgress.Children.Add(rootAttachProgress);
             try
             {
-                var rootAttachData = ComposeCharacterInfo(rootAttach, null, scene, root, rootAttachProgress);
+                var rootAttachData = ComposeCharacterInfo(ctx, rootAttach, null, rootAttachProgress);
                 if (rootAttachData != null)
                 {
                     var attachName = rootAttach.Skeleton.PartialSkeletons[characterInfo.Attach.PartialSkeletonIdx]
@@ -312,9 +323,19 @@ public class CharacterComposer
                     var attachPointBone =
                         rootAttachData.Value.bones.FirstOrDefault(
                             x => x.BoneName.Equals(attachName, StringComparison.Ordinal));
-                    if (attachPointBone == null)
+                    if (exportConfig.ExportAttachesAsSeparateObjects)
                     {
-                        scene.AddNode(rootBone);
+                        var ownerName = ctx.Root.Name;
+                        ctx.Root.Name = $"Mount_{ownerName}";
+                        var mountedRoot = new NodeBuilder($"Attach-{attachName}-{ownerName}");
+                        mountedRoot.LocalMatrix = SkeletonUtils.ComputeBoneWorldMatrix(attachPointBone, rootAttach.Skeleton, ctx.InstanceWorldTransform, ctx.Root);
+                        ctx.Scene.AddNode(mountedRoot);
+                        mountedRoot.AddNode(rootBone);
+                        rootParented = true;
+                    }
+                    else if (attachPointBone == null)
+                    {
+                        ctx.Scene.AddNode(rootBone);
                         rootParented = true;
                     }
                     else
@@ -332,18 +353,19 @@ public class CharacterComposer
 
                     rootBone = attachRoot;
                 }
-            } 
+            }
             finally
             {
                 rootAttachProgress.IsComplete = true;
             }
         }
-        
+
         return rootParented;
     }
     
-    public (List<BoneNodeBuilder> bones, BoneNodeBuilder root)? Compose(ParsedCharacterInfo characterInfo, SceneBuilder scene, NodeBuilder root, ExportProgress progress)
+    public (List<BoneNodeBuilder> bones, BoneNodeBuilder root)? Compose(ParsedCharacterInfo characterInfo, SceneBuilder scene, NodeBuilder root, ExportProgress progress, Matrix4x4? instanceWorldTransform = null)
     {
+        var worldTransform = instanceWorldTransform ?? Matrix4x4.Identity;
         composerCache.SaveArrayTextures();
         root.Extras = JsonNode.Parse(JsonSerializer.Serialize(new Dictionary<string, string>
         {
@@ -351,11 +373,20 @@ public class CharacterComposer
             {"raceCodeName", characterInfo.GenderRace.ToString() },
             { "nodeType", "CharacterRoot" }
         }));
-        return ComposeCharacterInfo(characterInfo, null, scene, root, progress);
+        var ctx = new ComposeContext(scene, root, worldTransform);
+        return ComposeCharacterInfo(ctx, characterInfo, null, progress);
     }
-    
-    private (List<BoneNodeBuilder> bones, BoneNodeBuilder root)? ComposeCharacterInfo(ParsedCharacterInfo characterInfo, (ParsedCharacterInfo Owner, List<BoneNodeBuilder> OwnerBones, ParsedAttach Attach)? attachData, SceneBuilder scene, NodeBuilder root, ExportProgress rootProgress)
+
+    private (List<BoneNodeBuilder> bones, BoneNodeBuilder root)? ComposeCharacterInfo(ComposeContext ctx, ParsedCharacterInfo characterInfo, AttachContext? attachData, ExportProgress rootProgress)
     {
+        foreach (var partialSkeleton in characterInfo.Skeleton.PartialSkeletons)
+        {
+            if (partialSkeleton.HandlePath != null)
+            {
+                composerCache.CacheSklb(partialSkeleton.HandlePath);
+            }
+        }
+
         List<BoneNodeBuilder> bones;
         BoneNodeBuilder? rootBone;
         try
@@ -379,7 +410,7 @@ public class CharacterComposer
         {
             try
             {
-                if (HandleAttach(attachData.Value, scene, rootBone, ref transform))
+                if (HandleAttach(ctx, attachData.Value, rootBone, ref transform))
                 {
                     rootParented = true;
                 }
@@ -397,7 +428,7 @@ public class CharacterComposer
         {
             try
             {
-                if (HandleRootAttach(characterInfo, scene, root, ref rootBone, ref transform, rootProgress))
+                if (HandleRootAttach(ctx, characterInfo, ref rootBone, ref transform, rootProgress))
                 {
                     rootParented = true;
                 }
@@ -410,9 +441,9 @@ public class CharacterComposer
 
         if (!rootParented)
         {
-            root.AddNode(rootBone);
+            ctx.Root.AddNode(rootBone);
         }
-        
+
         foreach (var t in characterInfo.Models)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -420,11 +451,11 @@ public class CharacterComposer
                 Plugin.Logger.LogInformation("Export cancelled, stopping model processing");
                 break;
             }
-            
+
             try
             {
-                HandleModel(characterInfo, t, 
-                            scene,
+                HandleModel(characterInfo, t,
+                            ctx.Scene,
                             new SkinningContext(bones, rootBone, transform));
             }
             catch (Exception e)
@@ -449,7 +480,7 @@ public class CharacterComposer
                 if (t.Attach.ExecuteType == 0) continue;
                 attachProgress = new ExportProgress(t.Models.Count, "Attach Meshes");
                 rootProgress.Children.Add(attachProgress);
-                ComposeCharacterInfo(t, (characterInfo, bones, t.Attach), scene, root, attachProgress);
+                ComposeCharacterInfo(ctx, t, new AttachContext(characterInfo, bones, t.Attach), attachProgress);
             }
             catch (Exception e)
             {

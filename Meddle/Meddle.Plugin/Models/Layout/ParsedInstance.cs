@@ -7,15 +7,15 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using Lumina.Excel.Sheets;
+using Meddle.Formats.Constants;
+using Meddle.Formats.Files;
+using Meddle.Formats.Files.MtrlFile;
 using Meddle.Plugin.Models.Composer;
 using Meddle.Plugin.Models.Skeletons;
 using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Constants;
 using Meddle.Utils.Export;
-using Meddle.Utils.Files;
-using Meddle.Utils.Files.Structs.Material;
 using CustomizeData = Meddle.Utils.Export.CustomizeData;
 using CustomizeParameter = Meddle.Utils.Export.CustomizeParameter;
 

@@ -1,17 +1,16 @@
 ﻿using System.Runtime.InteropServices;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
-using Meddle.Utils.Files.SqPack;
 
 namespace Meddle.Plugin.Services;
 
 public class RsfWatcher : IDisposable, IService
 {
     private readonly IFramework framework;
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly Configuration config;
 
-    public RsfWatcher(IFramework framework, SqPack pack, Configuration config)
+    public RsfWatcher(IFramework framework, SqPack.SqPack pack, Configuration config)
     {
         this.framework = framework;
         this.pack = pack;
