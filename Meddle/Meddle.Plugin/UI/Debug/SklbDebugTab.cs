@@ -1,22 +1,21 @@
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Bindings.ImGui;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using Meddle.Formats.Files;
 using Meddle.Formats.Helpers;
 using Meddle.Plugin.Havok;
-using Meddle.Plugin.Models;
+using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
 
-namespace Meddle.Plugin.UI;
+namespace Meddle.Plugin.UI.Debug;
 
-public class SklbDebugTab : ITab
+public class SklbDebugTab : IService
 {
     private readonly Configuration config;
     private readonly SqPack.SqPack sqPack;
@@ -41,10 +40,6 @@ public class SklbDebugTab : ITab
         this.commonUi = commonUi;
         this.notificationManager = notificationManager;
     }
-
-    public string Name => "Sklb Debug";
-    public int Order => 6;
-    public MenuType MenuType => MenuType.Debug;
 
     public unsafe void Draw()
     {
@@ -94,9 +89,6 @@ public class SklbDebugTab : ITab
         {
             ExportSklb(sklbPathInput);
         }
-        ImGui.TextWrapped("Manual path accepts either a game path " +
-                           "(e.g. chara/human/c0101/skeleton/base/b0001/skl_c0101b0001.sklb) " +
-                           "or an absolute path to a .sklb file on disk.");
 
         if (lastError != null)
         {
@@ -109,25 +101,9 @@ public class SklbDebugTab : ITab
         var results = new List<(string, string)>();
         var charPtr = (Character*)character.Address;
 
-        CollectCharacterBaseSklbPaths(charPtr->DrawObject, "Character", results);
-
-        var ornament = charPtr->OrnamentData.OrnamentObject;
-        if (ornament != null)
-            CollectCharacterBaseSklbPaths(ornament->DrawObject, "Ornament", results);
-
-        var mount = charPtr->Mount.MountObject;
-        if (mount != null)
-            CollectCharacterBaseSklbPaths(mount->DrawObject, "Mount", results);
-
-        var companion = charPtr->CompanionData.CompanionObject;
-        if (companion != null)
-            CollectCharacterBaseSklbPaths(companion->DrawObject, "Companion", results);
-
-        var weapons = charPtr->DrawData.WeaponData;
-        for (var i = 0; i < weapons.Length; i++)
+        foreach (var (label, drawObject) in ObjectUtil.GetAttachedDrawObjects(charPtr))
         {
-            if (weapons[i].DrawData.DrawObject != null)
-                CollectCharacterBaseSklbPaths(weapons[i].DrawData.DrawObject, $"Weapon {i}", results);
+            CollectCharacterBaseSklbPaths(drawObject.Value, label, results);
         }
 
         return results;
@@ -195,9 +171,5 @@ public class SklbDebugTab : ITab
                 Type = NotificationType.Error
             });
         }
-    }
-
-    public void Dispose()
-    {
     }
 }

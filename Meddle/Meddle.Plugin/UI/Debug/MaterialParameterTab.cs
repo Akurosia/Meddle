@@ -1,25 +1,24 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Interop;
-using Dalamud.Bindings.ImGui;
 using Meddle.Formats.Constants;
 using Meddle.Formats.Files;
 using Meddle.Formats.Files.MtrlFile;
 using Meddle.Formats.Helpers;
-using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Structs;
+using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
 using CSCharacter = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using Material = FFXIVClientStructs.FFXIV.Client.Graphics.Render.Material;
 
-namespace Meddle.Plugin.UI;
+namespace Meddle.Plugin.UI.Debug;
 
-public class MaterialParameterTab : ITab
+public class MaterialParameterTab : IService
 {
-    public MenuType MenuType => MenuType.Debug;
     private readonly Dictionary<string, Pointer<Material>> materialCache = new();
     private readonly Dictionary<string, MtrlFile> mtrlCache = new();
     private readonly Dictionary<string, float[]> mtrlConstantCache = new();
@@ -44,8 +43,6 @@ public class MaterialParameterTab : ITab
     }
 
     private ICharacter? selectedCharacter;
-    public string Name => "Material Parameters";
-    public int Order => 3;
 
     public void Dispose()
     {

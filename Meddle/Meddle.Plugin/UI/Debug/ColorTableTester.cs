@@ -1,82 +1,28 @@
-﻿using System.Numerics;
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Interface.Textures;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Interop;
-using Meddle.Plugin.Models;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.Utils;
-using Microsoft.Extensions.Logging;
 
-namespace Meddle.Plugin.UI;
+namespace Meddle.Plugin.UI.Debug;
 
-public class ColorTableTester : ITab
+public class ColorTableTester : IService
 {
-    private readonly ILogger<ColorTableTester> log;
-    private readonly Configuration config;
     private readonly CommonUi commonUi;
-    private readonly TextureCache textureCache;
-    private readonly ITextureProvider textureProvider;
     private ICharacter? selectedCharacter;
-    private OnRenderMaterialOutput? output;
-    public string Name => "ColorTable Tester";
-    public int Order => 100;
-    public MenuType MenuType => MenuType.Debug;
-    
-    public ColorTableTester(
-        ILogger<ColorTableTester> log,
-        Configuration config,
-        CommonUi commonUi, TextureCache textureCache, ITextureProvider textureProvider)
+
+    public ColorTableTester(CommonUi commonUi)
     {
-        this.log = log;
-        this.config = config;
         this.commonUi = commonUi;
-        this.textureCache = textureCache;
-        this.textureProvider = textureProvider;
     }
-    
+
     public unsafe void Draw()
     {
         commonUi.DrawCharacterSelect(ref selectedCharacter, CharacterValidationFlags.IsVisible);
-        if (output != null)
-        {
-            var serialized = System.Text.Json.JsonSerializer.Serialize(output, new System.Text.Json.JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-            ImGui.TextWrapped(serialized);
-            if (output.DecalTexture != null)
-            {
-                var wrap = textureCache.GetOrAdd($"{output.DecalTexture.GetHashCode()}", () =>
-                {
-                    var textureData = output.DecalTexture.Bitmap.GetPixelSpan();
-                    var wrap = textureProvider.CreateFromRaw(
-                        RawImageSpecification.Rgba32(output.DecalTexture.Width, output.DecalTexture.Height), textureData,
-                        $"Meddle_Decal_{output.DecalTexture.GetHashCode()}");
-                    return wrap;
-                });
-                var availableWidth = ImGui.GetContentRegionAvail().X;
-                float displayWidth = output.DecalTexture.Width;
-                float displayHeight = output.DecalTexture.Height;
-                if (displayWidth > availableWidth)
-                {
-                    var ratio = availableWidth / displayWidth;
-                    displayWidth *= ratio;
-                    displayHeight *= ratio;
-                }
-                ImGui.Image(wrap.Handle, new Vector2(displayWidth, displayHeight));
-            }
-            
-            if (ImGui.Button("Clear Output"))
-            {
-                output = null;
-            }
-        }
-        
+
         if (selectedCharacter == null)
         {
             ImGui.Text("No character selected");
@@ -153,11 +99,5 @@ public class ColorTableTester : ITab
                 UiUtil.DrawColorTable(colorTable);
             }
         }
-    }
-    
-    
-    public void Dispose()
-    {
-        // TODO release managed resources here
     }
 }

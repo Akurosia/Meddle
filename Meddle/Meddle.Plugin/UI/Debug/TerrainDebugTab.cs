@@ -1,5 +1,5 @@
-﻿using Dalamud.Interface.Utility.Raii;
-using Dalamud.Bindings.ImGui;
+﻿using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using Meddle.Formats.Files;
 using Meddle.Formats.Helpers;
@@ -8,7 +8,7 @@ using Meddle.Plugin.Models.Structs;
 using Meddle.Plugin.UI.Windows;
 using Meddle.Plugin.Utils;
 
-namespace Meddle.Plugin.UI;
+namespace Meddle.Plugin.UI.Debug;
 
 public class TerrainDebugTab : ITab
 {
@@ -32,9 +32,27 @@ public class TerrainDebugTab : ITab
     {
         var renderManager = Manager.Instance();
         UiUtil.Text($"Render Manager: {(nint)renderManager:x8}", $"{(nint)renderManager:x8}");
-        
+
         var world = sigUtil.GetLayoutWorld();
         if (world == null || world->ActiveLayout == null) return;
+
+        using (var layersTree = ImRaii.TreeNode("Layers"))
+        {
+            if (layersTree)
+            {
+                foreach (var layer in world->ActiveLayout->Layers)
+                {
+                    UiUtil.Text($"Layer: {layer.Item1} - {(nint)layer.Item2.Value:X8}", $"{(nint)layer.Item2.Value:X8}");
+                    var layerPtr = layer.Item2.Value;
+                    if (layerPtr == null) continue;
+                    foreach (var instance in layerPtr->Instances)
+                    {
+                        UiUtil.Text($"Instance: {instance.Item1} - {(nint)instance.Item2.Value:X8}", $"{(nint)instance.Item2.Value:X8}");
+                    }
+                }
+            }
+        }
+
         foreach (var terrain in world->ActiveLayout->Terrains)
         {
             UiUtil.Text($"Terrain: {terrain.Item1} - {(nint)terrain.Item2.Value:X8}", $"{(nint)terrain.Item2.Value:X8}");
