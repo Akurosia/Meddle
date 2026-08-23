@@ -13,12 +13,12 @@ using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.UI.Layout;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 using Lumina.Excel.Sheets;
 using SharpGLTF.Scenes;
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
+using SqPackReader = Meddle.SqPack.SqPack;
 
 namespace Meddle.Plugin.UI;
 
@@ -31,7 +31,7 @@ public unsafe class BatchExportTab : ITab
     private readonly Configuration config;
     private readonly ResolverService resolverService;
     private readonly ComposerFactory composerFactory;
-    private readonly SqPack pack;
+    private readonly SqPackReader pack;
     private readonly IObjectTable objectTable;
     private readonly IClientState clientState;
     private readonly IDataManager dataManager;
@@ -60,7 +60,7 @@ public unsafe class BatchExportTab : ITab
         Configuration config,
         ResolverService resolverService,
         ComposerFactory composerFactory,
-        SqPack pack,
+        SqPackReader pack,
         IObjectTable objectTable,
         IClientState clientState,
         IDataManager dataManager,
@@ -1212,7 +1212,7 @@ public unsafe class BatchExportTab : ITab
         }
     }
 
-    private static string GetRaceCode(Meddle.Utils.Constants.GenderRace genderRace)
+    private static string GetRaceCode(Meddle.Formats.Constants.GenderRace genderRace)
     {
         var raceCode = (ushort)genderRace;
         return raceCode == 0 ? "c0101" : $"c{raceCode:D4}";

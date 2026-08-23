@@ -1,0 +1,14 @@
+{
+    "Author": "Ramen",
+    "Name": "Meddle",
+    "Punchline": "Did I mention I'm a model? Export models to glTF format.",
+    "Description": "Export models to glTF format.",
+    "InternalName": "Meddle.Plugin",
+    "ApplicableVersion": "any",
+    "Tags": [
+        "xande",
+        "model",
+        "exporting"
+    ],
+    "IconUrl": "https://github.com/PassiveModding/Meddle/raw/main/icon.png"
+}
