@@ -6,11 +6,11 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Interop;
 using Dalamud.Bindings.ImGui;
+using Meddle.Formats.Files.MtrlFile;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Composer;
 using Meddle.Plugin.Models.Skeletons;
 using Meddle.Plugin.UI.Layout;
-using Meddle.Utils.Files.Structs.Material;
 using SharpGLTF.Transforms;
 using CustomizeData = Meddle.Utils.Export.CustomizeData;
 using CustomizeParameter = Meddle.Utils.Export.CustomizeParameter;
@@ -20,6 +20,13 @@ namespace Meddle.Plugin.Utils;
 
 public static class UiUtil
 {
+    // Slot indices per ActionTimelineSequencer's own doc comment.
+    public static readonly string[] TimelineSlotNames =
+    [
+        "Base", "UpperBody", "Facial", "Add", "Slot4", "Slot5", "Slot6",
+        "Lips", "Parts1", "Parts2", "Parts3", "Parts4", "Overlay"
+    ];
+
     public static void Text(string text, string? copyValue)
     {
         ImGui.Text(text);
@@ -91,6 +98,7 @@ public static class UiUtil
         ShowUseDeformer = 4,
         ShowSubmeshOptions = 8,
         ShowTerrainOptions = 16,
+        ShowAttachOptions = 32,
     }
 
     public static bool DrawExportConfig(Configuration.ExportConfiguration exportConfiguration, ExportConfigDrawFlags flags = ExportConfigDrawFlags.None)
@@ -218,6 +226,47 @@ public static class UiUtil
             
             HintCircle("If enabled, the export will only include terrain within the specified distance from the player.\n" +
                        "This is useful for reducing the size of the export, but may result in missing terrain in some areas.");
+
+            var includeGrass = exportConfiguration.IncludeGrass;
+            if (ImGui.Checkbox("Include grass models", ref includeGrass))
+            {
+                exportConfiguration.IncludeGrass = includeGrass;
+                changed = true;
+            }
+
+            ImGui.SameLine();
+
+            HintCircle("If enabled, the export will include the model props placed by the grass system\n" +
+                       "(shrubs, ground plants, etc. from the zone's grass_zone_data.gzd).\n" +
+                       "Respects the terrain range limit if set.");
+
+            var includeGrassBlades = exportConfiguration.IncludeGrassBlades;
+            if (ImGui.Checkbox("Include grass blades (points)", ref includeGrassBlades))
+            {
+                exportConfiguration.IncludeGrassBlades = includeGrassBlades;
+                changed = true;
+            }
+
+            ImGui.SameLine();
+
+            HintCircle("If enabled, the export will include grass blade instances as a point-cloud.\n" +
+                       "(with rotation/scale/type/color as vertex attributes on each point).\n" +
+                       "Respects the terrain range limit if set.");
+        }
+
+        if (flags.HasFlag(ExportConfigDrawFlags.ShowAttachOptions))
+        {
+            var exportAttachesSeparately = exportConfiguration.ExportAttachesAsSeparateObjects;
+            if (ImGui.Checkbox("Export attaches as separate objects", ref exportAttachesSeparately))
+            {
+                exportConfiguration.ExportAttachesAsSeparateObjects = exportAttachesSeparately;
+                changed = true;
+            }
+
+            ImGui.SameLine();
+            HintCircle("If enabled, attaches (weapons, mounts, linked attaches, etc.) are exported as separate top-level " +
+                       "objects positioned at their correct world transform, instead of being parented under the actor's skeleton.\n" +
+                       "Disable this (default) to keep attaches skinned/parented to the actor as usual.");
         }
 
         // var rootAttachHandling = exportConfiguration.RootAttachHandling;
@@ -463,7 +512,7 @@ public static class UiUtil
         var weaponData = drawDataContainer.WeaponData;
         foreach (var weapon in weaponData)
         {
-            var weaponDrawObject = weapon.DrawObject;
+            var weaponDrawObject = weapon.DrawData.DrawObject;
             if (weaponDrawObject == null)
             {
                 continue;

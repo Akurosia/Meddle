@@ -6,6 +6,8 @@ namespace Meddle.Plugin.Models.Skeletons;
 
 public class ParsedHkaSkeleton
 {
+    public ParsedHkaSkeleton() { }
+
     public unsafe ParsedHkaSkeleton(Pointer<hkaSkeleton> skeleton) : this(skeleton.Value) { }
 
     public unsafe ParsedHkaSkeleton(hkaSkeleton* skeleton)
@@ -26,9 +28,9 @@ public class ParsedHkaSkeleton
         ReferencePose = referencePose;
     }
 
-    public IReadOnlyList<string?> BoneNames { get; }
-    public IReadOnlyList<short> BoneParents { get; }
+    public IReadOnlyList<string?> BoneNames { get; init; } = [];
+    public IReadOnlyList<short> BoneParents { get; init; } = [];
 
     [JsonIgnore]
-    public IReadOnlyList<Transform> ReferencePose { get; }
+    public IReadOnlyList<Transform> ReferencePose { get; init; } = [];
 }

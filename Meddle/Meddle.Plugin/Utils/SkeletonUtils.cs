@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
+using System.Numerics;
 using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Skeletons;
-using Meddle.Plugin.UI;
 using Meddle.Utils;
 using SharpGLTF.Scenes;
 using SharpGLTF.Transforms;
@@ -47,12 +47,6 @@ public static class SkeletonUtils
                     continue;
                 }
 
-                // if (partial.ConnectedBoneIndex == i)
-                // {
-                //     throw new InvalidOperationException(
-                //         $"Bone {name} on {i} is connected to a skeleton that should've already been declared");
-                // }
-
                 var bone = new BoneNodeBuilder(name)
                 {
                     BoneIndex = i,
@@ -80,7 +74,6 @@ public static class SkeletonUtils
             }
         }
 
-        // create separate lists based on each root
         var boneMapList = new List<(List<BoneNodeBuilder> List, BoneNodeBuilder Root)>();
         foreach (var root in rootList)
         {
@@ -95,20 +88,18 @@ public static class SkeletonUtils
 
         var boneMaps = boneMapList.ToArray();
 
-        // set pose scaling
         if (poseMode != PoseMode.None)
         {
             foreach (var map in boneMaps)
             {
                 foreach (var bone in map.List)
                 {
-                    //ApplyPose(bone, skeleton, poseMode, 0);
                     var boneTransform = GetBoneTransform(skeleton, bone);
                     if (boneTransform == null)
                     {
                         continue;
                     }
-    
+
                     AddBoneKeyframe(bone, poseMode, 0, boneTransform.Value);
                 }
             }
@@ -117,26 +108,15 @@ public static class SkeletonUtils
         return boneMaps;
     }
     
-
-    private static void ApplyPose(
-        BoneNodeBuilder bone,
-        BoneNodeBuilder root,
-        AttachSet attachSet,
-        PoseMode poseMode,
-        float time)
+    private static AffineTransform? GetAppliedBoneTransform(AttachSet attachSet, BoneNodeBuilder bone)
     {
-        if (poseMode == PoseMode.None)
+        if (bone.Parent is not BoneNodeBuilder && 
+            attachSet is { OwnerId: not null, AttachBoneName: not null, Attach.OffsetTransform: { } offset })
         {
-            return; // no pose applied
+            return offset.AffineTransform;
         }
-        
-        var boneTransform = GetBoneTransform(attachSet.Skeleton, bone);
-        if (boneTransform == null)
-        {
-            return;
-        }
-        
-        AddBoneKeyframe(bone, poseMode, time, boneTransform.Value);
+
+        return GetBoneTransform(attachSet.Skeleton, bone);
     }
     
     public static List<BoneNodeBuilder> GetBoneMap(ParsedSkeleton skeleton, PoseMode poseMode, out BoneNodeBuilder? root)
@@ -146,11 +126,9 @@ public static class SkeletonUtils
         {
             root = null;
             return [];
-            //throw new InvalidOperationException("No roots were found");
         }
 
-        // only known instance of this thus far is the Air-Wheeler A9 mount
-        // contains two roots, one for the mount and an n_pluslayer which contains an additional skeleton
+        // Prefer n_root when a skeleton has multiple roots (e.g. Air-Wheeler A9 mount's n_pluslayer).
         var rootMap = maps.FirstOrDefault(x => x.Root.BoneName.Equals("n_root", StringComparison.OrdinalIgnoreCase));
         if (rootMap != default)
         {
@@ -164,7 +142,9 @@ public static class SkeletonUtils
     }
 
     public record AttachGrouping(List<BoneNodeBuilder> Bones, BoneNodeBuilder? Root, List<(DateTime Time, AttachSet Attach)> Timeline);
-    public static Dictionary<string, AttachGrouping> GetAnimatedBoneMap((DateTime Time, AttachSet[] Attaches)[] frames, AnimationExportSettings settings)
+
+    // Groups captured frames into per-attach timelines and builds each attach's keyframed bone map.
+    public static Dictionary<string, AttachGrouping> GetAnimatedBoneMap((DateTime Time, AttachSet[] Attaches)[] frames)
     {
         var attachDict = new Dictionary<string, AttachGrouping>();
         var attachTimelines = new Dictionary<string, List<(DateTime Time, AttachSet Attach)>>();
@@ -186,7 +166,7 @@ public static class SkeletonUtils
         var startTime = frames.Min(x => x.Time);
         foreach (var (attachId, timeline) in attachTimelines)
         {
-            ProcessTimeline(attachId, timeline, attachDict, startTime, settings);
+            ProcessTimeline(attachId, timeline, attachDict, startTime);
         }
 
         return attachDict;
@@ -196,8 +176,7 @@ public static class SkeletonUtils
         string attachId,
         List<(DateTime Time, AttachSet Attach)> timeline,
         Dictionary<string, AttachGrouping> attachDict,
-        DateTime startTime,
-        AnimationExportSettings settings)
+        DateTime startTime)
     {
         if (!attachDict.TryGetValue(attachId, out var attachBoneMap))
         {
@@ -207,17 +186,17 @@ public static class SkeletonUtils
 
         if (timeline.Count == 0)
         {
-            return; // no frames for this attach
+            return;
         }
 
-        // Track last transform and last frame time for each bone
         var lastTransforms = new Dictionary<string, (AffineTransform Transform, float Time, bool KeyframeSet)>();
+        (int ExecuteType, string? BoneName)? lastAttachPoint = null;
+        var prevFrameTime = 0f;
         foreach (var time in timeline.Select(x => x.Time).Distinct())
         {
             var frame = timeline.FirstOrDefault(x => x.Time == time);
             var frameTime = TotalSeconds(frame.Time, startTime);
 
-            // get the bone map for this attach
             var boneMap = GetBoneMap(frame.Attach.Skeleton, PoseMode.None, out var attachRoot);
             if (attachRoot == null)
                 continue;
@@ -227,15 +206,21 @@ public static class SkeletonUtils
                 attachBoneMap = attachBoneMap with { Root = attachRoot };
             }
 
-            // for each bone in the bone map
+            // If attach point changes, hold original bone until the switch happens to avoid lerping
+            var attachPoint = (frame.Attach.Attach.ExecuteType, frame.Attach.AttachBoneName);
+            float? switchHoldTime = null;
+            if (lastAttachPoint != null && lastAttachPoint.Value != attachPoint)
+            {
+                var epsilon = Math.Min(0.01f, (frameTime - prevFrameTime) * 0.25f);
+                switchHoldTime = frameTime - epsilon;
+            }
+
             foreach (var attachBone in boneMap)
             {
-                // get the transform for this bone
-                var currentTransform = GetBoneTransform(frame.Attach.Skeleton, attachBone);
+                var currentTransform = GetAppliedBoneTransform(frame.Attach, attachBone);
                 if (currentTransform == null)
-                    continue; // no transform for this bone
+                    continue;
 
-                // find the bone in the attachBoneMap
                 var bone = attachBoneMap.Bones.FirstOrDefault(x => x.BoneName.Equals(attachBone.BoneName, StringComparison.OrdinalIgnoreCase));
                 if (bone == null)
                 {
@@ -243,58 +228,51 @@ public static class SkeletonUtils
                     bone = attachBone;
                 }
 
-                // Keyframe logic
                 var boneName = attachBone.BoneName;
-                if (!lastTransforms.TryGetValue(boneName, out var value) || IsLastFrameInTimeline(timeline, frame.Time))
+                if (!lastTransforms.TryGetValue(boneName, out var value))
                 {
-                    ApplyPose(bone, attachRoot, frame.Attach, PoseMode.Local, frameTime);
+                    AddBoneKeyframe(bone, PoseMode.Local, frameTime, currentTransform.Value);
                     lastTransforms[boneName] = (currentTransform.Value, frameTime, true);
+                    continue;
                 }
-                else
-                {
-                    var (lastTransform, lastTime, keyframeSet) = value;
 
-                    if (IsSameTransform(currentTransform.Value, lastTransform))
-                    {
-                        // No change, just update last info
-                        lastTransforms[boneName] = (lastTransform, frameTime, keyframeSet);
-                        continue;
-                    }
-                    // Change detected
-                    if (!keyframeSet)
-                    {
-                        // Add keyframe for last frame
-                        ApplyPose(bone, attachRoot, frame.Attach, PoseMode.Local, lastTime);
-                    }
-                    // Add keyframe for current frame
-                    ApplyPose(bone, attachRoot, frame.Attach, PoseMode.Local, frameTime);
-                    lastTransforms[boneName] = (currentTransform.Value, frameTime, true);
+                var (lastTransform, lastTime, keyframeSet) = value;
+
+                var current = currentTransform.Value;
+                var alignedRotation = HemisphereAlign(current.Rotation, lastTransform.Rotation);
+                if (alignedRotation != current.Rotation)
+                {
+                    current = new AffineTransform(current.Scale, alignedRotation, current.Translation);
                 }
+
+                var isSame = IsSameTransform(current, lastTransform);
+
+                // Skip if same, but mark in-case we need to write a hold value for a later change
+                if (isSame && !IsLastFrameInTimeline(timeline, frame.Time))
+                {
+                    lastTransforms[boneName] = (lastTransform, frameTime, false);
+                    continue;
+                }
+
+                if (!isSame)
+                {
+                    if (switchHoldTime is { } holdTime && holdTime > lastTime)
+                    {
+                        AddBoneKeyframe(bone, PoseMode.Local, holdTime, lastTransform);
+                    }
+                    else if (!keyframeSet)
+                    {
+                        // Close the held span with the held value, not the current frame's.
+                        AddBoneKeyframe(bone, PoseMode.Local, lastTime, lastTransform);
+                    }
+                }
+
+                AddBoneKeyframe(bone, PoseMode.Local, frameTime, current);
+                lastTransforms[boneName] = (current, frameTime, true);
             }
 
-            // var startPos = firstFrame.Attach.Transform.Translation;
-            // var pos = frame.Attach.Transform.Translation;
-            // var rot = frame.Attach.Transform.Rotation;
-            // var scale = frame.Attach.Transform.Scale;
-            // var relativeTranslation = pos - startPos;
-            // attachRoot.UseScale().UseTrackBuilder("root").WithPoint(frameTime, scale);
-            // attachRoot.UseRotation().UseTrackBuilder("root").WithPoint(frameTime, rot);
-            // attachRoot.UseTranslation().UseTrackBuilder("root").WithPoint(frameTime, relativeTranslation);
-            
-            // if (settings.IncludePositionalData)
-            // {
-            //     // If positional data is included, apply the translation and rotation to the root
-            //
-            //     if (!settings.IncludeAbsolutePosition)
-            //     {
-            //         pos -= startPos;
-            //     }
-            //     
-            //     attachRoot.UseScale().UseTrackBuilder("pose").WithPoint(frameTime, scale);
-            //     attachRoot.UseRotation().UseTrackBuilder("pose").WithPoint(frameTime, rot);
-            //     attachRoot.UseTranslation().UseTrackBuilder("pose").WithPoint(frameTime, pos);
-            // }
-            
+            prevFrameTime = frameTime;
+            lastAttachPoint = attachPoint;
             attachDict[attachId] = attachBoneMap;
         }
     }
@@ -304,6 +282,11 @@ public static class SkeletonUtils
     {
         return timeline.LastOrDefault().Time == time;
     }
+
+    // Flips current to match previous's hemisphere (q and -q are the same rotation) so adjacent
+    // keys never interpolate the long way around.
+    public static Quaternion HemisphereAlign(Quaternion current, Quaternion previous) =>
+        Quaternion.Dot(current, previous) < 0 ? Quaternion.Negate(current) : current;
     
     private static void AddBoneKeyframe(BoneNodeBuilder bone, PoseMode poseMode, float time, AffineTransform transform)
     {
@@ -316,7 +299,6 @@ public static class SkeletonUtils
         }
     }
 
-    // Helper to compare transforms with tolerance
     private static bool IsSameTransform(AffineTransform current, AffineTransform previous, float tolerance = 0.0001f)
     {
         return IsVectorSame(current.Scale, previous.Scale, tolerance) &&
@@ -339,6 +321,37 @@ public static class SkeletonUtils
                Math.Abs(a.W - b.W) < tolerance;
     }
     
+    public static Matrix4x4 ToMatrix(AffineTransform t) =>
+        Matrix4x4.CreateScale(t.Scale) * Matrix4x4.CreateFromQuaternion(t.Rotation) * Matrix4x4.CreateTranslation(t.Translation);
+
+    public static Matrix4x4 ComputeBoneWorldMatrix(
+        NodeBuilder? bone, ParsedSkeleton skeleton, Matrix4x4 instanceWorldTransform, NodeBuilder? stopAt = null)
+    {
+        var world = Matrix4x4.Identity;
+        var c = bone;
+        while (c != null)
+        {
+            if (c is BoneNodeBuilder { IsGenerated: false } boneNode &&
+                GetBoneTransform(skeleton, boneNode) is { } poseTransform)
+            {
+                world *= ToMatrix(poseTransform);
+            }
+            else
+            {
+                world *= c.LocalMatrix;
+            }
+
+            if (c == stopAt || c.Parent == null)
+            {
+                world *= instanceWorldTransform;
+            }
+
+            c = c.Parent;
+        }
+
+        return world;
+    }
+
     public static AffineTransform? GetBoneTransform(ParsedSkeleton skeleton, BoneNodeBuilder bone)
     {
         var partial = skeleton.PartialSkeletons[bone.PartialSkeletonIndex];
@@ -346,8 +359,7 @@ public static class SkeletonUtils
             
         var pose = partial.Poses[0];
         var boneTransform = pose.Pose[bone.BoneIndex].AffineTransform;
-        
-        // Apply root scaling if this is a root bone
+
         if (bone.Parent is not BoneNodeBuilder)
         {
             var scale = boneTransform.Scale * skeleton.Transform.Scale;

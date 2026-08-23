@@ -1,26 +1,22 @@
-﻿using System.Numerics;
-using System.Reflection;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.Interop;
 using FFXIVClientStructs.STD;
 using InteropGenerator.Runtime;
 using Meddle.Plugin.Models;
-using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 
 namespace Meddle.Plugin.UI;
 
 public class RsfTab : ITab
 {
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly ILogger<RsfTab> logger;
 
-    public RsfTab(SqPack pack, ILogger<RsfTab> logger)
+    public RsfTab(SqPack.SqPack pack, ILogger<RsfTab> logger)
     {
         this.pack = pack;
         this.logger = logger;

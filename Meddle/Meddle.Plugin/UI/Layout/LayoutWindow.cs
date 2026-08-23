@@ -11,7 +11,6 @@ using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Services;
 using Meddle.Plugin.UI.Windows;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Files.SqPack;
 using Microsoft.Extensions.Logging;
 
 namespace Meddle.Plugin.UI.Layout;
@@ -22,7 +21,7 @@ public partial class LayoutWindow : ITab
     private readonly MdlMaterialWindowManager mdlMaterialWindowManager;
     private readonly IFramework framework;
     private readonly Configuration config;
-    private readonly SqPack dataManager;
+    private readonly SqPack.SqPack dataManager;
 
     private readonly FileDialogManager fileDialog = new()
     {
@@ -62,7 +61,7 @@ public partial class LayoutWindow : ITab
         ComposerFactory composerFactory,
         MdlMaterialWindowManager mdlMaterialWindowManager,
         IFramework framework,
-        SqPack dataManager)
+        SqPack.SqPack dataManager)
     {
         this.layoutService = layoutService;
         this.config = config;
@@ -391,7 +390,12 @@ public partial class LayoutWindow : ITab
             {
                 flags |= UiUtil.ExportConfigDrawFlags.ShowTerrainOptions;
             }
-            
+            if (instances.Any(t => (t.Type & ParsedInstanceType.Character) != 0) ||
+                instances.Any(t => t is ParsedSharedInstance sh && sh.Flatten().Any(i => (i.Type & ParsedInstanceType.Character) != 0)))
+            {
+                flags |= UiUtil.ExportConfigDrawFlags.ShowAttachOptions;
+            }
+
             if (UiUtil.DrawExportConfig(exportConfig, flags))
             {
                 config.ExportConfig.Apply(exportConfig);

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using System.Text.Json;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Bindings.ImGui;
@@ -22,6 +23,12 @@ public class OptionsTab : ITab
 
     public string Name => "Options";
     public int Order => (int) WindowOrder.Options;
+
+    private readonly JsonSerializerOptions jsonOptions = new()
+    {
+        WriteIndented = true,
+        IncludeFields = true
+    };
 
     public void Draw()
     {
@@ -173,6 +180,19 @@ public class OptionsTab : ITab
         {
             config.OpenFolderOnExport = openFolderOnExport;
             config.Save();
+        }
+
+        if (ImGui.CollapsingHeader("Config Json"))
+        {
+            var configJson = JsonSerializer.Serialize(config, jsonOptions);
+            ImGui.TextWrapped(configJson);
+
+            var secretConfigOption = config.SecretConfig;
+            if (ImGui.InputText("Secret Config", ref secretConfigOption, 50))
+            {
+                config.SecretConfig = secretConfigOption;
+                config.Save();
+            }
         }
     }
     

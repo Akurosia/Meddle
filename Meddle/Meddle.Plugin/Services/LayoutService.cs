@@ -16,11 +16,11 @@ using Microsoft.Extensions.Logging;
 using BgObject = Meddle.Plugin.Models.Structs.BgObject;
 using Camera = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Camera;
 using HousingFurniture = FFXIVClientStructs.FFXIV.Client.Game.HousingFurniture;
+using LightLayoutInstance = Meddle.Plugin.Models.Structs.LightLayoutInstance;
 using Object = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.Object;
 using ObjectType = FFXIVClientStructs.FFXIV.Client.Graphics.Scene.ObjectType;
 using OutdoorPlotFixtureData = Meddle.Plugin.Models.Structs.Outdoor.OutdoorPlotFixtureData;
 using OutdoorPlotLayoutData = Meddle.Plugin.Models.Structs.Outdoor.OutdoorPlotLayoutData;
-using SharedGroupResourceHandle = Meddle.Plugin.Models.Structs.SharedGroupResourceHandle;
 using Transform = Meddle.Plugin.Models.Transform;
 
 namespace Meddle.Plugin.Services;

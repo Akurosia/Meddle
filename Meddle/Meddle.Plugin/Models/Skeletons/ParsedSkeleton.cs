@@ -5,6 +5,8 @@ namespace Meddle.Plugin.Models.Skeletons;
 
 public class ParsedSkeleton
 {
+    public ParsedSkeleton() { }
+
     public unsafe ParsedSkeleton(Pointer<Skeleton> skeleton) : this(skeleton.Value) { }
 
     public unsafe ParsedSkeleton(Skeleton* skeleton)
@@ -26,6 +28,6 @@ public class ParsedSkeleton
         PartialSkeletons = partialSkeletons;
     }
 
-    public Transform Transform { get; }
-    public IReadOnlyList<ParsedPartialSkeleton> PartialSkeletons { get; }
+    public Transform Transform { get; init; }
+    public IReadOnlyList<ParsedPartialSkeleton> PartialSkeletons { get; init; } = [];
 }

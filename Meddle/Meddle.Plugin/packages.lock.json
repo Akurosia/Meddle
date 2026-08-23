@@ -392,9 +392,22 @@
         "resolved": "2.0.0",
         "contentHash": "I+ctNBG8qLWRlaQgLRiS08HZTiuTdvlrYhrxp5B7uOJHD0QQaDxRfrV0cq4xxKyj+9+jqJZMy28l/NwvsgyVlQ=="
       },
+      "meddle.formats": {
+        "type": "Project",
+        "dependencies": {
+          "Meddle.SqPack": "[1.0.0, )"
+        }
+      },
+      "meddle.sqpack": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "[10.0.1, )"
+        }
+      },
       "meddle.utils": {
         "type": "Project",
         "dependencies": {
+          "Meddle.Formats": "[1.0.0, )",
           "Microsoft.Extensions.Logging.Abstractions": "[10.0.1, )",
           "SharpGLTF.Core": "[1.0.5, )",
           "SharpGLTF.Toolkit": "[1.0.5, )",

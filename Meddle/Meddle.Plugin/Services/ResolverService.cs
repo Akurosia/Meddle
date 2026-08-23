@@ -3,10 +3,13 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.Interop;
+using Meddle.Formats.Files;
+using Meddle.Formats.Files.MdlFile;
+using Meddle.Formats.Files.MtrlFile;
+using Meddle.Formats.Helpers;
+using Meddle.Plugin.Models;
 using Meddle.Plugin.Models.Layout;
 using Meddle.Plugin.Utils;
-using Meddle.Utils.Files;
-using Meddle.Utils.Files.SqPack;
 using Meddle.Utils.Helpers;
 using Microsoft.Extensions.Logging;
 
@@ -16,22 +19,25 @@ public class ResolverService : IService
 {
     private readonly ILogger<ResolverService> logger;
     private readonly LayoutService layoutService;
-    private readonly SqPack pack;
+    private readonly SqPack.SqPack pack;
     private readonly IFramework framework;
     private readonly PbdHooks pbdHooks;
+    private readonly SigUtil sigUtil;
 
     public ResolverService(
-        ILogger<ResolverService> logger, 
+        ILogger<ResolverService> logger,
         LayoutService layoutService,
-        SqPack pack,
+        SqPack.SqPack pack,
         IFramework framework,
-        PbdHooks pbdHooks)
+        PbdHooks pbdHooks,
+        SigUtil sigUtil)
     {
         this.logger = logger;
         this.layoutService = layoutService;
         this.pack = pack;
         this.framework = framework;
         this.pbdHooks = pbdHooks;
+        this.sigUtil = sigUtil;
     }
     
     
@@ -78,7 +84,7 @@ public class ResolverService : IService
                 var gameObject = (GameObject*)characterInstance.Id;
                 if (IsCharacterKind(gameObject->ObjectKind))
                 {
-                    var characterInfo = ParseCharacter((Character*)gameObject);
+                    var characterInfo = ParseCharacter((Character*)gameObject, true);
                     characterInstance.CharacterInfo = characterInfo;
                 }
                 else
@@ -227,8 +233,34 @@ public class ResolverService : IService
     {
         return ParseMaterialUtil.ParseDrawObject(drawObject, pbdHooks);
     }
-    
-    public unsafe ParsedCharacterInfo? ParseCharacter(Character* character)
+
+    private unsafe Character* FindCharacterByDrawObject(DrawObject* drawObject)
+    {
+        if (drawObject == null)
+            return null;
+
+        var gameObjectManager = sigUtil.GetGameObjectManager();
+        if (gameObjectManager == null)
+            return null;
+
+        for (var idx = 0; idx < gameObjectManager->Objects.GameObjectIdSorted.Length; idx++)
+        {
+            var objectPtr = gameObjectManager->Objects.GameObjectIdSorted[idx];
+            if (objectPtr.Value == null)
+                continue;
+
+            var obj = objectPtr.Value;
+            if (!IsCharacterKind(obj->GetObjectKind()))
+                continue;
+
+            if (obj->DrawObject == drawObject)
+                return (Character*)obj;
+        }
+
+        return null;
+    }
+
+    public unsafe ParsedCharacterInfo? ParseCharacter(Character* character, bool includedLinkedAttaches = false)
     {
         if (character == null)
         {
@@ -262,15 +294,42 @@ public class ResolverService : IService
 
         foreach (var weapon in character->DrawData.WeaponData)
         {
-            var weaponInfo = ParseMaterialUtil.ParseDrawObject(weapon.DrawObject, pbdHooks);
+            var weaponInfo = ParseMaterialUtil.ParseDrawObject(weapon.DrawData.DrawObject, pbdHooks);
             if (weaponInfo != null)
             {
                 attaches.Add(weaponInfo);
             }
         }
 
+        if (includedLinkedAttaches)
+        {
+            List<Pointer<CharacterBase>> linked = [];
+            try
+            {
+                linked = StructExtensions.GetLinkedAttaches(character, sigUtil);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to resolve Attach vtable, skipping linked attaches");
+            }
+
+            foreach (var childCBasePtr in linked)
+            {
+                var childCBase = childCBasePtr.Value;
+                if (childCBase == null)
+                    continue;
+
+                var linkedCharacter = FindCharacterByDrawObject((DrawObject*)childCBase);
+                var linkedInfo = linkedCharacter != null
+                    ? ParseCharacter(linkedCharacter, true)
+                    : ParseMaterialUtil.ParseDrawObject((DrawObject*)childCBase, pbdHooks);
+                if (linkedInfo != null)
+                    attaches.Add(linkedInfo);
+            }
+        }
+
         characterInfo.Attaches = attaches.ToArray();
-        
+
         return characterInfo;
     }
 }
